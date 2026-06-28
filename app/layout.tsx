@@ -17,6 +17,8 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "JC Cosmetics — Dashboard",
   description: "CRM, Inventory & Sales Management",
+  manifest: "/manifest.json",
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({

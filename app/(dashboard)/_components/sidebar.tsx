@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -50,13 +51,20 @@ export function Sidebar() {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-jc-blush px-5 py-4">
+        <div className="flex items-center gap-3 border-b border-jc-blush px-5 py-4">
+          <Image
+            src="/logo.png"
+            alt="JC Cosmetics"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-sm object-cover"
+          />
           <Link href="/dashboard" className="font-display text-xl tracking-wide text-jc-anchor">
             JC Cosmetics
           </Link>
           <button
             onClick={() => setOpen(false)}
-            className="text-jc-anchor lg:hidden"
+            className="ml-auto text-jc-anchor lg:hidden"
             aria-label="Close menu"
           >
             <X size={20} />
