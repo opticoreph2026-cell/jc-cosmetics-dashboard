@@ -1,12 +1,8 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
-import { PrismaClient } from "@/lib/prisma/client/client";
+import { createPrismaClient } from "@/lib/db";
 import { hash } from "bcryptjs";
 
 export async function POST() {
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaPg(pool);
-  const prisma = new PrismaClient({ adapter });
+  const prisma = createPrismaClient();
 
   try {
     const adminEmail = process.env.AUTH_ADMIN_EMAIL || "admin@jccosmetics.com";
