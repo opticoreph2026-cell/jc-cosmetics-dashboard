@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --jc-cream: #F0E9E3;
+  --jc-rose-gold: #B78B74;
+  --jc-rose-gold-light: #D2A08C;
+  --jc-anchor: #5C4033;
+  --jc-blush: #E5D6CA;
+  --jc-white: #FFFFFF;
+}
+
+@theme inline {
+  --color-jc-cream: var(--jc-cream);
+  --color-jc-rose-gold: var(--jc-rose-gold);
+  --color-jc-rose-gold-light: var(--jc-rose-gold-light);
+  --color-jc-anchor: var(--jc-anchor);
+  --color-jc-blush: var(--jc-blush);
+  --color-jc-white: var(--jc-white);
+  --font-display: 'Cormorant Garamond', 'Playfair Display', serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+}
+
+body {
+  font-family: var(--font-body);
+}
