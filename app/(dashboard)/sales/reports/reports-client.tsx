@@ -1,10 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from "recharts";
+import { useState, useEffect, lazy, Suspense } from "react";
 
 const PERIODS = [
   { value: "7d", label: "7 days" },
@@ -15,6 +11,10 @@ const PERIODS = [
 ] as const;
 
 const COLORS = ["#B78B74", "#D2A08C", "#5C4033", "#E5D6CA", "#F0E9E3"];
+
+const DailyChart = lazy(() => import("./daily-chart").then((m) => ({ default: m.DailyChart })));
+const ChannelPie = lazy(() => import("./channel-pie").then((m) => ({ default: m.ChannelPie })));
+const CategoryChart = lazy(() => import("./category-chart").then((m) => ({ default: m.CategoryChart })));
 
 export function ReportsClient() {
   const [period, setPeriod] = useState("30d");
@@ -42,7 +42,7 @@ export function ReportsClient() {
     URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div className="text-sm text-jc-anchor/50">Loading...</div>;
+  if (loading) return <ReportsSkeleton />;
   if (!data) return <div className="text-sm text-red-500">Failed to load</div>;
 
   return (
@@ -79,42 +79,41 @@ export function ReportsClient() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-sm border border-jc-blush bg-white p-5">
           <h2 className="mb-4 text-sm font-medium text-jc-anchor">Daily Revenue</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data.daily}>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#5C4033" }} />
-              <YAxis tick={{ fontSize: 10, fill: "#5C4033" }} />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#B78B74" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<div className="h-[250px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
+            <DailyChart data={data.daily} />
+          </Suspense>
         </div>
 
         <div className="rounded-sm border border-jc-blush bg-white p-5">
           <h2 className="mb-4 text-sm font-medium text-jc-anchor">By Channel</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie data={data.byChannel} dataKey="revenue" nameKey="channel" cx="50%" cy="50%" outerRadius={80}>
-                {data.byChannel.map((_: any, i: number) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<div className="h-[250px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
+            <ChannelPie data={data.byChannel} colors={COLORS} />
+          </Suspense>
         </div>
 
         <div className="rounded-sm border border-jc-blush bg-white p-5 lg:col-span-2">
           <h2 className="mb-4 text-sm font-medium text-jc-anchor">By Category</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data.byCategory}>
-              <XAxis dataKey="category" tick={{ fontSize: 10, fill: "#5C4033" }} />
-              <YAxis tick={{ fontSize: 10, fill: "#5C4033" }} />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#D2A08C" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<div className="h-[250px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
+            <CategoryChart data={data.byCategory} />
+          </Suspense>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportsSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex gap-2">
+        {[1,2,3,4,5].map((i) => <div key={i} className="h-9 w-20 rounded-sm bg-jc-cream/50" />)}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[1,2,3,4].map((i) => <div key={i} className="h-20 rounded-sm bg-jc-cream/50" />)}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="h-[300px] rounded-sm bg-jc-cream/50" />
+        <div className="h-[300px] rounded-sm bg-jc-cream/50" />
       </div>
     </div>
   );

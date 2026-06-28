@@ -21,3 +21,11 @@ export class ApiError extends Error {
     super(message);
   }
 }
+
+export function json(data: unknown, init?: ResponseInit) {
+  const existing = init?.headers ? Object.fromEntries(new Headers(init.headers).entries()) : {};
+  return NextResponse.json(data, {
+    ...init,
+    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120", ...existing },
+  });
+}

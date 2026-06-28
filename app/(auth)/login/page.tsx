@@ -7,7 +7,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-sm bg-white p-8 shadow-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <Image
-            src="/logo.png"
+            src="/logo.webp"
             alt="JC Cosmetics"
             width={64}
             height={64}

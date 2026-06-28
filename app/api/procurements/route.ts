@@ -1,17 +1,17 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, json } from "@/lib/auth-helpers";
 import { createProcurementSchema } from "@/lib/validations/schemas";
 
 export async function GET() {
   try {
     await requireAuth();
     const procurements = await prisma.procurement.findMany({
-      include: { supplier: { select: { name: true } }, items: { include: { variant: { include: { product: { select: { name: true } } } } } } },
+      select: { id: true, poNumber: true, status: true, totalCost: true, orderDate: true, supplier: { select: { name: true } }, items: { select: { qtyOrdered: true, qtyReceived: true, variant: { select: { name: true, product: { select: { name: true } } } } } } },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
-    return Response.json(procurements);
+    return json(procurements);
   } catch (error) {
     return handleApiError(error);
   }

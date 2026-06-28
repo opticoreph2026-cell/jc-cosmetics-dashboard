@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, json } from "@/lib/auth-helpers";
 import { createCustomerSchema } from "@/lib/validations/schemas";
 
 export async function GET() {
@@ -10,7 +10,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
-    return Response.json(customers);
+    return json(customers);
   } catch (error) {
     return handleApiError(error);
   }

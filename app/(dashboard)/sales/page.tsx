@@ -9,7 +9,7 @@ export default async function SalesPage() {
   if (!session?.user) redirect("/login");
 
   const orders = await prisma.salesOrder.findMany({
-    include: { customer: { select: { name: true } }, items: { include: { variant: { include: { product: { select: { name: true } } } } } } },
+    select: { id: true, orderNumber: true, total: true, channel: true, paymentMethod: true, createdAt: true, customer: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
     take: 50,
   });

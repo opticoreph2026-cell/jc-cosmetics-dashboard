@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, json } from "@/lib/auth-helpers";
 import { subDays, startOfMonth, format } from "date-fns";
 
 export async function GET(req: NextRequest) {
@@ -26,13 +26,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const orders = await prisma.salesOrder.findMany({
-      where: { createdAt: { gte: from, lte: to } },
-      include: {
-        items: { include: { variant: { include: { product: { select: { categoryId: true } } } } } },
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const [orders, categories] = await Promise.all([
+      prisma.salesOrder.findMany({
+        where: { createdAt: { gte: from, lte: to } },
+        select: {
+          total: true, channel: true, createdAt: true,
+          items: { select: { subtotal: true, unitCostAtSale: true, qty: true, variant: { select: { product: { select: { categoryId: true } } } } } },
+        },
+        orderBy: { createdAt: "asc" },
+        take: 5000,
+      }),
+      prisma.category.findMany({ select: { id: true, name: true } }),
+    ]);
+
+    const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
 
     const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
     const totalOrders = orders.length;
@@ -54,17 +61,8 @@ export async function GET(req: NextRequest) {
       daily[dayKey] = (daily[dayKey] || 0) + Number(order.total);
     }
 
-    const categories = await prisma.category.findMany();
-    const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
-
-    return Response.json({
-      summary: {
-        totalRevenue: totalRevenue.toFixed(2),
-        totalOrders,
-        avgOrderValue: avgOrderValue.toFixed(2),
-        totalMargin: totalMargin.toFixed(2),
-        totalCost: totalCost.toFixed(2),
-      },
+    return json({
+      summary: { totalRevenue: totalRevenue.toFixed(2), totalOrders, avgOrderValue: avgOrderValue.toFixed(2), totalMargin: totalMargin.toFixed(2), totalCost: totalCost.toFixed(2) },
       byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: revenue.toFixed(2) })),
       byCategory: Object.entries(byCategory).map(([id, revenue]) => ({ category: catMap[id] || id, revenue: revenue.toFixed(2) })),
       daily: Object.entries(daily).map(([date, revenue]) => ({ date, revenue: revenue.toFixed(2) })),

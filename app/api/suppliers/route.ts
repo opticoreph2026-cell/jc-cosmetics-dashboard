@@ -1,16 +1,17 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, json } from "@/lib/auth-helpers";
 import { createSupplierSchema } from "@/lib/validations/schemas";
 
 export async function GET() {
   try {
     await requireAuth();
     const suppliers = await prisma.supplier.findMany({
-      include: { supplierProducts: { include: { variant: { include: { product: { select: { name: true } } } } } } },
+      select: { id: true, name: true, contactPerson: true, _count: { select: { supplierProducts: true } } },
       orderBy: { name: "asc" },
+      take: 100,
     });
-    return Response.json(suppliers);
+    return json(suppliers);
   } catch (error) {
     return handleApiError(error);
   }

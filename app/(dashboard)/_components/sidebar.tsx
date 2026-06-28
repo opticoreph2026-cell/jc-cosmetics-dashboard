@@ -61,7 +61,7 @@ export function Sidebar() {
       >
         <div className="flex items-center gap-3 border-b border-jc-blush px-5 py-4">
           <Image
-            src="/logo.png"
+            src="/logo.webp"
             alt="JC Cosmetics"
             width={32}
             height={32}

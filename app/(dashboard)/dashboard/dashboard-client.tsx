@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import Link from "next/link";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
+const MiniBarChart = lazy(() => import("./mini-bar-chart").then((m) => ({ default: m.MiniBarChart })));
 
 export function DashboardClient() {
   const [data, setData] = useState<any>(null);
@@ -14,7 +15,7 @@ export function DashboardClient() {
       .then(setData);
   }, []);
 
-  if (!data) return <div className="text-sm text-jc-anchor/50">Loading...</div>;
+  if (!data) return <LoadingSkeleton />;
 
   const periodKey = period as keyof typeof data;
   const periodRevenue = Number(data[periodKey].revenue);
@@ -54,14 +55,9 @@ export function DashboardClient() {
       {data.byChannel.length > 0 && (
         <div className="rounded-sm border border-jc-blush bg-white p-5">
           <p className="mb-3 text-xs uppercase tracking-wider text-jc-anchor/60">Today by Channel</p>
-          <ResponsiveContainer width="100%" height={150}>
-            <BarChart data={data.byChannel}>
-              <XAxis dataKey="channel" tick={{ fontSize: 10, fill: "#5C4033" }} />
-              <YAxis tick={{ fontSize: 10, fill: "#5C4033" }} />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#B78B74" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<div className="h-[150px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
+            <MiniBarChart data={data.byChannel} />
+          </Suspense>
         </div>
       )}
 
@@ -145,5 +141,22 @@ function QuickAction({ href, label }: { href: string; label: string }) {
     >
       {label}
     </Link>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="h-24 rounded-sm bg-jc-cream/50 lg:col-span-2" />
+        <div className="h-24 rounded-sm bg-jc-cream/50" />
+        <div className="h-24 rounded-sm bg-jc-cream/50" />
+      </div>
+      <div className="h-[150px] rounded-sm bg-jc-cream/50" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="h-40 rounded-sm bg-jc-cream/50" />
+        <div className="h-40 rounded-sm bg-jc-cream/50" />
+      </div>
+    </div>
   );
 }
