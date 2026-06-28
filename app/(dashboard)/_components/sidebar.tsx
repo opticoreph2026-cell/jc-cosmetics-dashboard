@@ -12,6 +12,10 @@ import {
   LogOut,
   Menu,
   X,
+  Tags,
+  ClipboardList,
+  BookOpen,
+  Settings,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
@@ -23,6 +27,10 @@ const navItems = [
   { href: "/sales", label: "Sales", icon: ShoppingCart },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/suppliers", label: "Suppliers", icon: Truck },
+  { href: "/categories", label: "Categories", icon: Tags },
+  { href: "/procurement", label: "Procurement", icon: ClipboardList },
+  { href: "/ledger", label: "Ledger", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { DeleteProductButton } from "./delete-button";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -23,6 +24,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <Link href="/inventory" className="text-sm text-jc-rose-gold hover:underline">&larr; Back</Link>
           <h1 className="font-display text-2xl text-jc-anchor">{product.name}</h1>
           <p className="text-sm text-jc-anchor/60">{product.category.name}</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/inventory/${id}/edit`}
+            className="rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor hover:bg-jc-cream/50">Edit</Link>
+          <DeleteProductButton productId={product.id} productName={product.name} />
         </div>
       </div>
 

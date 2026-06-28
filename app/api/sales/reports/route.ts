@@ -1,11 +1,11 @@
-import { createPrismaClient } from "@/lib/db";
 import { NextRequest } from "next/server";
-import { startOfDay, subDays, startOfWeek, startOfMonth, format } from "date-fns";
+import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { subDays, startOfMonth, format } from "date-fns";
 
 export async function GET(req: NextRequest) {
-  const prisma = createPrismaClient();
-
   try {
+    await requireAuth();
     const { searchParams } = new URL(req.url);
     const period = searchParams.get("period") || "30d";
     const fromParam = searchParams.get("from");
@@ -46,12 +46,10 @@ export async function GET(req: NextRequest) {
 
     for (const order of orders) {
       byChannel[order.channel] = (byChannel[order.channel] || 0) + Number(order.total);
-
       for (const item of order.items) {
         const catId = item.variant.product.categoryId;
         byCategory[catId] = (byCategory[catId] || 0) + Number(item.subtotal);
       }
-
       const dayKey = format(order.createdAt, "yyyy-MM-dd");
       daily[dayKey] = (daily[dayKey] || 0) + Number(order.total);
     }
@@ -72,8 +70,6 @@ export async function GET(req: NextRequest) {
       daily: Object.entries(daily).map(([date, revenue]) => ({ date, revenue: revenue.toFixed(2) })),
     });
   } catch (error) {
-    return Response.json({ error: String(error) }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return handleApiError(error);
   }
 }

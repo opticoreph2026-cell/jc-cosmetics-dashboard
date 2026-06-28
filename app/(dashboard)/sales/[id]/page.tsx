@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { VoidOrderButton } from "./void-button";
 
 export default async function SalesDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -23,7 +24,10 @@ export default async function SalesDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link href="/sales" className="text-sm text-jc-rose-gold hover:underline">&larr; Back to Sales</Link>
+      <div className="flex items-center justify-between">
+        <Link href="/sales" className="text-sm text-jc-rose-gold hover:underline">&larr; Back to Sales</Link>
+        <VoidOrderButton orderId={order.id} orderNumber={order.orderNumber} />
+      </div>
 
       <div className="rounded-sm border border-jc-blush bg-white p-6">
         <div className="flex items-center justify-between border-b border-jc-blush pb-4">

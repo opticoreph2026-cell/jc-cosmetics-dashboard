@@ -1,14 +1,13 @@
-import { createPrismaClient } from "@/lib/db";
-import { startOfDay, startOfWeek, startOfMonth, endOfDay, subDays } from "date-fns";
+import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { startOfDay, startOfWeek, startOfMonth, endOfDay } from "date-fns";
 
 export async function GET() {
-  const prisma = createPrismaClient();
-
   try {
+    await requireAuth();
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
-
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const monthStart = startOfMonth(now);
 
@@ -43,26 +42,16 @@ export async function GET() {
     });
 
     return Response.json({
-      today: {
-        revenue: todayOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2),
-        orders: todayOrders.length,
-      },
-      week: { revenue: weekOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2) },
-      month: { revenue: monthOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2) },
+      today: { revenue: Number(todayOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)), orders: todayOrders.length },
+      week: { revenue: Number(weekOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)) },
+      month: { revenue: Number(monthOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)) },
       lowStock: lowStockItems.map((v) => ({
-        id: v.id,
-        product: v.product.name,
-        variant: v.name,
-        sku: v.sku,
-        stock: v.currentStockQty,
-        reorderAt: v.reorderPoint,
+        id: v.id, product: v.product.name, variant: v.name, sku: v.sku, stock: v.currentStockQty, reorderAt: v.reorderPoint,
       })),
-      byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: revenue.toFixed(2) })),
+      byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: Number(revenue.toFixed(2)) })),
       recentOrders,
     });
   } catch (error) {
-    return Response.json({ error: String(error) }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return handleApiError(error);
   }
 }

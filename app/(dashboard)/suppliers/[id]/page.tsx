@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { DeleteSupplierButton } from "./delete-button";
 
 export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -26,7 +27,14 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
-      <Link href="/suppliers" className="text-sm text-jc-rose-gold hover:underline">&larr; Back to Suppliers</Link>
+      <div className="flex items-center justify-between">
+        <Link href="/suppliers" className="text-sm text-jc-rose-gold hover:underline">&larr; Back to Suppliers</Link>
+        <div className="flex gap-2">
+          <Link href={`/suppliers/${id}/edit`}
+            className="rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor hover:bg-jc-cream/50">Edit</Link>
+          <DeleteSupplierButton supplierId={supplier.id} supplierName={supplier.name} />
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="rounded-sm border border-jc-blush bg-white p-6 lg:col-span-1">

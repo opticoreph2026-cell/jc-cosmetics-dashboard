@@ -1,9 +1,7 @@
-import { createPrismaClient } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
 
 export async function POST() {
-  const prisma = createPrismaClient();
-
   try {
     const adminEmail = process.env.AUTH_ADMIN_EMAIL || "admin@jccosmetics.com";
     const adminPassword = process.env.AUTH_ADMIN_PASSWORD || "admin123";
@@ -31,8 +29,6 @@ export async function POST() {
 
     return Response.json({ success: true });
   } catch (error) {
-    return Response.json({ success: false, error: String(error) }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return Response.json({ error: String(error) }, { status: 500 });
   }
 }

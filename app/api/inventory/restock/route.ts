@@ -1,28 +1,30 @@
-import { createPrismaClient } from "@/lib/db";
 import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { restockSchema } from "@/lib/validations/schemas";
 
 export async function POST(req: NextRequest) {
-  const prisma = createPrismaClient();
-
   try {
-    const { variantId, supplierId, qty, unitCost } = await req.json();
-
-    const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
-    if (!variant) return Response.json({ error: "Variant not found" }, { status: 404 });
-
-    const previousStockQty = variant.currentStockQty;
-    const newStockQty = previousStockQty + qty;
+    await requireAuth();
+    const body = await req.json();
+    const data = restockSchema.parse(body);
 
     const result = await prisma.$transaction(async (tx) => {
+      const variant = await tx.productVariant.findUnique({ where: { id: data.variantId } });
+      if (!variant) throw new Error("Variant not found");
+
+      const previousStockQty = variant.currentStockQty;
+      const newStockQty = previousStockQty + data.qty;
+
       await tx.productVariant.update({
-        where: { id: variantId },
-        data: { currentStockQty: newStockQty },
+        where: { id: data.variantId },
+        data: { currentStockQty: newStockQty, unitCost: data.unitCost },
       });
 
       await tx.inventoryLedger.create({
         data: {
-          variantId,
-          changeQty: qty,
+          variantId: data.variantId,
+          changeQty: data.qty,
           channel: "PHYSICAL",
           referenceType: "PROCUREMENT",
           note: "Restock from supplier",
@@ -31,23 +33,22 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const now = new Date();
       const poCount = await tx.procurement.count();
       const procurement = await tx.procurement.create({
         data: {
           poNumber: `PO-${String(poCount + 1).padStart(4, "0")}`,
-          supplierId,
+          supplierId: data.supplierId,
           status: "RECEIVED",
-          orderDate: now,
-          receivedDate: now,
-          totalCost: unitCost * qty,
+          orderDate: new Date(),
+          receivedDate: new Date(),
+          totalCost: data.unitCost * data.qty,
           items: {
             create: {
-              variantId,
-              qtyOrdered: qty,
-              qtyReceived: qty,
-              unitCost,
-              subtotal: unitCost * qty,
+              variantId: data.variantId,
+              qtyOrdered: data.qty,
+              qtyReceived: data.qty,
+              unitCost: data.unitCost,
+              subtotal: data.unitCost * data.qty,
             },
           },
         },
@@ -58,8 +59,6 @@ export async function POST(req: NextRequest) {
 
     return Response.json(result, { status: 201 });
   } catch (error) {
-    return Response.json({ error: String(error) }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return handleApiError(error);
   }
 }
