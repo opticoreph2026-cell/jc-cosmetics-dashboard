@@ -2,6 +2,7 @@
 
 import { useSearch, SearchBar } from "../_components/search-filter";
 import { useRouter } from "next/navigation";
+import { Table, THead, TBody, TR, TH, TD, Empty } from "../_components/table";
 
 type Product = { id: string; name: string; category: { name: string }; variants: { currentStockQty: number }[] };
 
@@ -12,37 +13,30 @@ export function InventoryClient({ products }: { products: Product[] }) {
   return (
     <div className="space-y-4">
       <SearchBar value={query} onChange={setQuery} placeholder="Search products..." />
-      <div className="overflow-x-auto rounded-sm border border-jc-blush bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-jc-blush bg-jc-cream/30">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Product</th>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Category</th>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Variants</th>
-              <th className="px-4 py-3 text-right font-medium text-jc-anchor">Total Stock</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((product) => {
-              const totalStock = product.variants.reduce((s, v) => s + v.currentStockQty, 0);
-              return (
-                <tr key={product.id} className="border-b border-jc-blush/50 last:border-0 hover:bg-jc-cream/20 cursor-pointer"
-                  onClick={() => router.push(`/inventory/${product.id}`)}>
-                  <td className="px-4 py-3 text-jc-rose-gold font-medium">{product.name}</td>
-                  <td className="px-4 py-3 text-jc-anchor/70">{product.category.name}</td>
-                  <td className="px-4 py-3 text-jc-anchor/70">{product.variants.length}</td>
-                  <td className="px-4 py-3 text-right text-jc-anchor">{totalStock}</td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-jc-anchor/50">No products found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Product</TH>
+            <TH hiddenOn="sm">Category</TH>
+            <TH align="right" hiddenOn="sm">Variants</TH>
+            <TH align="right">Total Stock</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {filtered.map((product) => {
+            const totalStock = product.variants.reduce((s, v) => s + v.currentStockQty, 0);
+            return (
+              <TR key={product.id} onClick={() => router.push(`/inventory/${product.id}`)}>
+                <TD className="text-jc-rose-gold font-medium truncate max-w-[200px]">{product.name}</TD>
+                <TD hiddenOn="sm">{product.category.name}</TD>
+                <TD align="right" hiddenOn="sm">{product.variants.length}</TD>
+                <TD align="right" className="text-jc-anchor">{totalStock}</TD>
+              </TR>
+            );
+          })}
+          {filtered.length === 0 && <Empty colSpan={4}>No products found.</Empty>}
+        </TBody>
+      </Table>
     </div>
   );
 }

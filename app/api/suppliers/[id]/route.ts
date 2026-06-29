@@ -32,9 +32,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   try {
     await requireAuth();
     const { id } = await params;
-    await prisma.supplierProduct.deleteMany({ where: { supplierId: id } });
-    await prisma.procurement.deleteMany({ where: { supplierId: id } });
-    await prisma.supplier.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.supplierProduct.deleteMany({ where: { supplierId: id } });
+      await tx.procurement.deleteMany({ where: { supplierId: id } });
+      await tx.supplier.delete({ where: { id } });
+    });
     return Response.json({ success: true });
   } catch (error) {
     return handleApiError(error);

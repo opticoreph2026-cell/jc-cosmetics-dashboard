@@ -13,12 +13,15 @@ export function DeleteCustomerButton({ customerId, customerName }: { customerId:
     setLoading(true);
     try {
       const res = await fetch(`/api/customers/${customerId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        throw new Error(err.error);
+      }
       toast.success("Customer deleted");
       router.push("/customers");
       router.refresh();
-    } catch {
-      toast.error("Failed to delete customer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete customer");
     } finally {
       setLoading(false);
       setShow(false);

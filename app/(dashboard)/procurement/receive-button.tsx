@@ -17,11 +17,14 @@ export function ReceivePOButton({ poId, poNumber }: { poId: string; poNumber: st
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "RECEIVED" }),
       });
-      if (!res.ok) throw new Error("Failed to receive PO");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to receive PO" }));
+        throw new Error(err.error);
+      }
       toast.success(`${poNumber} marked as received`);
       router.refresh();
-    } catch {
-      toast.error("Failed to receive PO");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to receive PO");
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { DeleteSupplierButton } from "./delete-button";
+import { Table, THead, TBody, TR, TH, TD, Empty } from "../../_components/table";
 
 export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -59,65 +60,61 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-sm border border-jc-blush bg-white">
-            <div className="border-b border-jc-blush px-4 py-3">
-              <h2 className="font-medium text-jc-anchor">Linked Products</h2>
-            </div>
+          <div>
+            <h2 className="mb-3 font-medium text-jc-anchor">Linked Products</h2>
             {supplier.supplierProducts.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-jc-anchor/50">No products linked.</div>
+              <div className="rounded-sm border border-jc-blush bg-white px-4 py-8 text-center text-sm text-jc-anchor/50">No products linked.</div>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="border-b border-jc-blush bg-jc-cream/30">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-jc-anchor">Product</th>
-                    <th className="px-4 py-3 text-left font-medium text-jc-anchor">Variant</th>
-                    <th className="px-4 py-3 text-right font-medium text-jc-anchor">Unit Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Product</TH>
+                    <TH hiddenOn="sm">Variant</TH>
+                    <TH align="right">Unit Cost</TH>
+                  </TR>
+                </THead>
+                <TBody>
                   {supplier.supplierProducts.map((sp) => (
-                    <tr key={sp.id} className="border-b border-jc-blush/50 last:border-0 hover:bg-jc-cream/20">
-                      <td className="px-4 py-3 text-jc-anchor">{sp.variant.product.name}</td>
-                      <td className="px-4 py-3 text-jc-anchor/70">{sp.variant.name}</td>
-                      <td className="px-4 py-3 text-right text-jc-anchor">₱{Number(sp.unitCost).toFixed(2)}</td>
-                    </tr>
+                    <TR key={sp.id}>
+                      <TD className="text-jc-anchor truncate max-w-[200px]">{sp.variant.product.name}</TD>
+                      <TD hiddenOn="sm">{sp.variant.name}</TD>
+                      <TD align="right">₱{Number(sp.unitCost).toFixed(2)}</TD>
+                    </TR>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             )}
           </div>
 
-          <div className="rounded-sm border border-jc-blush bg-white">
-            <div className="border-b border-jc-blush px-4 py-3">
-              <h2 className="font-medium text-jc-anchor">Recent Procurement</h2>
-            </div>
+          <div>
+            <h2 className="mb-3 font-medium text-jc-anchor">Recent Procurement</h2>
             {supplier.procurements.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-jc-anchor/50">No procurement yet.</div>
+              <div className="rounded-sm border border-jc-blush bg-white px-4 py-8 text-center text-sm text-jc-anchor/50">No procurement yet.</div>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="border-b border-jc-blush bg-jc-cream/30">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-jc-anchor">PO #</th>
-                    <th className="px-4 py-3 text-left font-medium text-jc-anchor">Date</th>
-                    <th className="px-4 py-3 text-left font-medium text-jc-anchor">Status</th>
-                    <th className="px-4 py-3 text-right font-medium text-jc-anchor">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>PO #</TH>
+                    <TH hiddenOn="sm">Date</TH>
+                    <TH>Status</TH>
+                    <TH align="right" hiddenOn="sm">Total</TH>
+                  </TR>
+                </THead>
+                <TBody>
                   {supplier.procurements.map((po) => (
-                    <tr key={po.id} className="border-b border-jc-blush/50 last:border-0 hover:bg-jc-cream/20">
-                      <td className="px-4 py-3 font-mono text-xs text-jc-rose-gold">{po.poNumber}</td>
-                      <td className="px-4 py-3 text-jc-anchor/70">
+                    <TR key={po.id}>
+                      <TD className="font-mono text-xs text-jc-rose-gold">{po.poNumber}</TD>
+                      <TD hiddenOn="sm">
                         {new Date(po.orderDate).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
-                      </td>
-                      <td className="px-4 py-3">
+                      </TD>
+                      <TD>
                         <span className="rounded-sm bg-jc-cream px-2 py-0.5 text-xs text-jc-anchor">{po.status}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-jc-anchor">₱{Number(po.totalCost).toFixed(2)}</td>
-                    </tr>
+                      </TD>
+                      <TD align="right" hiddenOn="sm">₱{Number(po.totalCost).toFixed(2)}</TD>
+                    </TR>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             )}
           </div>
         </div>

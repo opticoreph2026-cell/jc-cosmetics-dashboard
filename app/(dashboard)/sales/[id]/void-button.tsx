@@ -13,12 +13,15 @@ export function VoidOrderButton({ orderId, orderNumber }: { orderId: string; ord
     setLoading(true);
     try {
       const res = await fetch(`/api/sales/${orderId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to void order");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to void order" }));
+        throw new Error(err.error);
+      }
       toast.success(`Order ${orderNumber} voided`);
       router.push("/sales");
       router.refresh();
-    } catch {
-      toast.error("Failed to void order");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to void order");
     } finally {
       setLoading(false);
       setShow(false);

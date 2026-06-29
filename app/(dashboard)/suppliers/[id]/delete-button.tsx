@@ -13,12 +13,15 @@ export function DeleteSupplierButton({ supplierId, supplierName }: { supplierId:
     setLoading(true);
     try {
       const res = await fetch(`/api/suppliers/${supplierId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        throw new Error(err.error);
+      }
       toast.success("Supplier deleted");
       router.push("/suppliers");
       router.refresh();
-    } catch {
-      toast.error("Failed to delete supplier");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete supplier");
     } finally {
       setLoading(false);
       setShow(false);

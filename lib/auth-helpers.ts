@@ -1,5 +1,6 @@
 import { auth } from "./auth";
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 export async function requireAuth() {
   const session = await auth();
@@ -10,6 +11,8 @@ export async function requireAuth() {
 export function handleApiError(error: unknown) {
   if (error instanceof ApiError)
     return NextResponse.json({ error: error.message }, { status: error.status });
+  if (error instanceof ZodError)
+    return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 });
   if (error instanceof Error && error.message === "Insufficient stock")
     return NextResponse.json({ error: "Insufficient stock" }, { status: 400 });
   console.error("API Error:", error);

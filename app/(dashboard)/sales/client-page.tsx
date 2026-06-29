@@ -2,6 +2,7 @@
 
 import { useSearch, SearchBar } from "../_components/search-filter";
 import Link from "next/link";
+import { Table, THead, TBody, TR, TH, TD, Empty } from "../_components/table";
 
 type Order = { id: string; orderNumber: string; createdAt: string; channel: string; customerName: string; total: number; paymentMethod: string };
 
@@ -11,43 +12,37 @@ export function SalesClient({ orders }: { orders: Order[] }) {
   return (
     <div className="space-y-4">
       <SearchBar value={query} onChange={setQuery} placeholder="Search order number or customer..." />
-      <div className="overflow-x-auto rounded-sm border border-jc-blush bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-jc-blush bg-jc-cream/30">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Order</th>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Date</th>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Channel</th>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Customer</th>
-              <th className="px-4 py-3 text-right font-medium text-jc-anchor">Total</th>
-              <th className="px-4 py-3 text-left font-medium text-jc-anchor">Payment</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((order) => (
-              <tr key={order.id} className="border-b border-jc-blush/50 last:border-0 hover:bg-jc-cream/20">
-                <td className="px-4 py-3">
-                  <Link href={`/sales/${order.id}`} className="text-jc-rose-gold hover:underline font-mono text-xs">{order.orderNumber}</Link>
-                </td>
-                <td className="px-4 py-3 text-jc-anchor/70 whitespace-nowrap">
-                  {new Date(order.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="rounded-sm bg-jc-cream px-2 py-1 text-xs text-jc-anchor">{order.channel}</span>
-                </td>
-                <td className="px-4 py-3 text-jc-anchor/70">{order.customerName || "\u2014"}</td>
-                <td className="px-4 py-3 text-right text-jc-anchor font-medium">₱{order.total.toFixed(2)}</td>
-                <td className="px-4 py-3 text-jc-anchor/70 text-xs">{order.paymentMethod}</td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-jc-anchor/50">No sales found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Order</TH>
+            <TH hiddenOn="sm">Date</TH>
+            <TH hiddenOn="md">Channel</TH>
+            <TH hiddenOn="md">Customer</TH>
+            <TH align="right">Total</TH>
+            <TH hiddenOn="md">Payment</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {filtered.map((order) => (
+            <TR key={order.id}>
+              <TD className="text-jc-rose-gold">
+                <Link href={`/sales/${order.id}`} className="hover:underline font-mono text-xs">{order.orderNumber}</Link>
+              </TD>
+              <TD hiddenOn="sm" className="whitespace-nowrap">
+                {new Date(order.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+              </TD>
+              <TD hiddenOn="md">
+                <span className="rounded-sm bg-jc-cream px-2 py-1 text-xs text-jc-anchor">{order.channel}</span>
+              </TD>
+              <TD hiddenOn="md">{order.customerName || "\u2014"}</TD>
+              <TD align="right">₱{order.total.toFixed(2)}</TD>
+              <TD hiddenOn="md" className="text-xs">{order.paymentMethod}</TD>
+            </TR>
+          ))}
+          {filtered.length === 0 && <Empty colSpan={6}>No sales found.</Empty>}
+        </TBody>
+      </Table>
     </div>
   );
 }

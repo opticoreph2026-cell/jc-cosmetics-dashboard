@@ -13,12 +13,15 @@ export function DeleteProductButton({ productId, productName }: { productId: str
     setLoading(true);
     try {
       const res = await fetch(`/api/inventory/${productId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        throw new Error(err.error);
+      }
       toast.success("Product deleted");
       router.push("/inventory");
       router.refresh();
-    } catch {
-      toast.error("Failed to delete product");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete product");
     } finally {
       setLoading(false);
       setShow(false);
