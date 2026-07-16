@@ -17,8 +17,8 @@ export function InventoryClient({ products }: { products: Product[] }) {
         <THead>
           <TR>
             <TH>Product</TH>
-            <TH hiddenOn="sm">Category</TH>
-            <TH align="right" hiddenOn="sm">Variants</TH>
+            <TH>Category</TH>
+            <TH align="right">Variants</TH>
             <TH align="right">Total Stock</TH>
           </TR>
         </THead>
@@ -28,8 +28,8 @@ export function InventoryClient({ products }: { products: Product[] }) {
             return (
               <TR key={product.id} onClick={() => router.push(`/inventory/${product.id}`)}>
                 <TD className="text-jc-rose-gold font-medium truncate max-w-[200px]">{product.name}</TD>
-                <TD hiddenOn="sm">{product.category.name}</TD>
-                <TD align="right" hiddenOn="sm">{product.variants.length}</TD>
+                <TD>{product.category.name}</TD>
+                <TD align="right">{product.variants.length}</TD>
                 <TD align="right" className="text-jc-anchor">{totalStock}</TD>
               </TR>
             );

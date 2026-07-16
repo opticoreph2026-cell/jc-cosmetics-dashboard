@@ -22,11 +22,11 @@ export default async function ProcurementPage() {
           <TR>
             <TH>PO #</TH>
             <TH>Supplier</TH>
-            <TH hiddenOn="sm">Date</TH>
-            <TH hiddenOn="md">Items</TH>
+            <TH>Date</TH>
+            <TH>Items</TH>
             <TH>Status</TH>
-            <TH align="right" hiddenOn="sm">Total</TH>
-            <TH hiddenOn="md">Actions</TH>
+            <TH align="right">Total</TH>
+            <TH>Actions</TH>
           </TR>
         </THead>
         <TBody>
@@ -34,10 +34,10 @@ export default async function ProcurementPage() {
             <TR key={po.id}>
               <TD className="font-mono text-xs text-jc-rose-gold">{po.poNumber}</TD>
               <TD className="text-jc-anchor truncate max-w-[150px]">{po.supplier.name}</TD>
-              <TD hiddenOn="sm" className="whitespace-nowrap">
+              <TD className="whitespace-nowrap">
                 {new Date(po.orderDate).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
               </TD>
-              <TD hiddenOn="md" className="text-xs">
+              <TD className="text-xs">
                 {po.items.map((i) => `${i.variant.product.name} (x${i.qtyReceived ?? i.qtyOrdered})`).join(", ")}
               </TD>
               <TD>
@@ -45,10 +45,10 @@ export default async function ProcurementPage() {
                   po.status === "RECEIVED" ? "bg-green-100 text-green-700" :
                   po.status === "PENDING" ? "bg-amber-100 text-amber-700" :
                   "bg-jc-cream text-jc-anchor"
-                }`}>{po.status}</span>
+                }`}>{({ PENDING: "Pending", ORDERED: "Ordered", RECEIVED: "Received", CANCELLED: "Cancelled" } as Record<string, string>)[po.status] || po.status}</span>
               </TD>
-              <TD align="right" hiddenOn="sm">₱{Number(po.totalCost).toFixed(2)}</TD>
-              <TD hiddenOn="md">{po.status === "PENDING" && <ReceivePOButton poId={po.id} poNumber={po.poNumber} />}</TD>
+              <TD align="right">₱{Number(po.totalCost).toFixed(2)}</TD>
+              <TD>{po.status === "PENDING" && <ReceivePOButton poId={po.id} poNumber={po.poNumber} />}</TD>
             </TR>
           ))}
           {procurements.length === 0 && <Empty colSpan={7}>No procurement orders yet. Create one from a supplier&apos;s page.</Empty>}

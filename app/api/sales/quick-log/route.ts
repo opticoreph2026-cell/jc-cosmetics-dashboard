@@ -51,6 +51,34 @@ export async function POST(req: NextRequest) {
         total += subtotal;
         totalCost += unitCostAtSale * item.qty;
 
+        orderItems.push({
+          variantId: item.variantId,
+          qty: item.qty,
+          unitPriceAtSale,
+          unitCostAtSale,
+          subtotal,
+          previousStockQty: variant.currentStockQty,
+        });
+      }
+
+      const lastSO = await tx.salesOrder.findFirst({ orderBy: { orderNumber: "desc" }, select: { orderNumber: true } });
+      const nextNum = lastSO ? parseInt(lastSO.orderNumber.replace("SO-", ""), 10) + 1 : 1;
+
+      const order = await tx.salesOrder.create({
+        data: {
+          orderNumber: `SO-${String(nextNum).padStart(4, "0")}`,
+          channel: data.channel,
+          paymentMethod: data.paymentMethod,
+          customerId,
+          subtotal: total,
+          discount: 0,
+          total,
+          createdAt: data.saleDate ? new Date(data.saleDate) : undefined,
+          items: { create: orderItems.map(({ previousStockQty, ...oi }) => oi) },
+        },
+      });
+
+      for (const item of orderItems) {
         await tx.productVariant.update({
           where: { id: item.variantId },
           data: { currentStockQty: { decrement: item.qty } },
@@ -61,39 +89,12 @@ export async function POST(req: NextRequest) {
             variantId: item.variantId,
             changeQty: -item.qty,
             channel: data.channel,
+            referenceId: order.id,
             referenceType: "SALES_ORDER",
-            previousStockQty: variant.currentStockQty,
-            newStockQty: variant.currentStockQty - item.qty,
+            previousStockQty: item.previousStockQty,
+            newStockQty: item.previousStockQty - item.qty,
+            createdAt: data.saleDate ? new Date(data.saleDate) : undefined,
           },
-        });
-
-        orderItems.push({
-          variantId: item.variantId,
-          qty: item.qty,
-          unitPriceAtSale,
-          unitCostAtSale,
-          subtotal,
-        });
-      }
-
-      const orderCount = await tx.salesOrder.count();
-      const order = await tx.salesOrder.create({
-        data: {
-          orderNumber: `SO-${String(orderCount + 1).padStart(4, "0")}`,
-          channel: data.channel,
-          paymentMethod: data.paymentMethod,
-          customerId,
-          subtotal: total,
-          discount: 0,
-          total,
-          items: { create: orderItems },
-        },
-      });
-
-      for (const item of orderItems) {
-        await tx.inventoryLedger.updateMany({
-          where: { variantId: item.variantId, referenceType: "SALES_ORDER", referenceId: null },
-          data: { referenceId: order.id },
         });
       }
 

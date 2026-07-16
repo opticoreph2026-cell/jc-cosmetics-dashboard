@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 type Category = { id: string; name: string; slug: string };
-type VariantInput = { name: string; sku: string; unitCost: string; sellingPrice: string; currentStockQty: string; reorderPoint: string };
+type VariantInput = { id?: string; name: string; sku: string; unitCost: string; sellingPrice: string; currentStockQty: string; reorderPoint: string };
 
 export function ProductForm({ categories, initialData }: { categories: Category[]; initialData?: any }) {
   const router = useRouter();
@@ -16,6 +16,7 @@ export function ProductForm({ categories, initialData }: { categories: Category[
   const [description, setDescription] = useState(initialData?.description || "");
   const [variants, setVariants] = useState<VariantInput[]>(
     initialData?.variants?.map((v: any) => ({
+      id: v.id,
       name: v.name,
       sku: v.sku,
       unitCost: String(v.unitCost),
@@ -57,12 +58,15 @@ export function ProductForm({ categories, initialData }: { categories: Category[
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, description, categoryId }),
         });
-        if (!res.ok) throw new Error("Failed to update product");
+        if (!res.ok) { const err = await res.text(); throw new Error(err || "Failed to update product"); }
+
+        const originalIds: string[] = (initialData.variants || []).map((v: any) => v.id);
+        const submittedIds: string[] = [];
 
         for (const v of variants) {
-          const existingVariant = initialData.variants?.find((ev: any) => ev.sku === v.sku);
-          if (existingVariant) {
-            await fetch(`/api/inventory/variants/${existingVariant.id}`, {
+          if (v.id) {
+            submittedIds.push(v.id);
+            const r = await fetch(`/api/inventory/variants/${v.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -70,8 +74,9 @@ export function ProductForm({ categories, initialData }: { categories: Category[
                 currentStockQty: parseInt(v.currentStockQty), reorderPoint: parseInt(v.reorderPoint),
               }),
             });
+            if (!r.ok) { const err = await r.text(); throw new Error(err || "Failed to update variant"); }
           } else {
-            await fetch(`/api/inventory/variants`, {
+            const r = await fetch(`/api/inventory/variants`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -80,8 +85,18 @@ export function ProductForm({ categories, initialData }: { categories: Category[
                 reorderPoint: parseInt(v.reorderPoint),
               }),
             });
+            if (!r.ok) { const err = await r.text(); throw new Error(err || "Failed to create variant"); }
           }
         }
+
+        // delete orphans — variants that existed but were removed from the form
+        for (const id of originalIds) {
+          if (!submittedIds.includes(id)) {
+            const r = await fetch(`/api/inventory/variants/${id}`, { method: "DELETE" });
+            if (!r.ok) { const err = await r.text(); throw new Error(err || "Failed to delete removed variant"); }
+          }
+        }
+
         toast.success("Product updated");
         router.push("/inventory");
       } else {
@@ -108,8 +123,8 @@ export function ProductForm({ categories, initialData }: { categories: Category[
         router.push("/inventory");
       }
       router.refresh();
-    } catch {
-      toast.error(isEdit ? "Failed to update product" : "Failed to create product");
+    } catch (e: any) {
+      toast.error(e.message || (isEdit ? "Failed to update product" : "Failed to create product"));
     } finally {
       setLoading(false);
     }

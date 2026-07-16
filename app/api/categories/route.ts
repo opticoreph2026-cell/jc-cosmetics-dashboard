@@ -47,6 +47,12 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) throw new Error("id is required");
+
+    const productCount = await prisma.product.count({ where: { categoryId: id } });
+    if (productCount > 0) {
+      return Response.json({ error: `Cannot delete category: ${productCount} product(s) are using it. Remove or reassign them first.` }, { status: 400 });
+    }
+
     await prisma.category.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (error) {

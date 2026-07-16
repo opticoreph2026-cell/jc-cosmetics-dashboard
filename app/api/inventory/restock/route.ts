@@ -21,18 +21,6 @@ export async function POST(req: NextRequest) {
         data: { currentStockQty: newStockQty, unitCost: data.unitCost },
       });
 
-      await tx.inventoryLedger.create({
-        data: {
-          variantId: data.variantId,
-          changeQty: data.qty,
-          channel: "PHYSICAL",
-          referenceType: "PROCUREMENT",
-          note: "Restock from supplier",
-          previousStockQty,
-          newStockQty,
-        },
-      });
-
       const poCount = await tx.procurement.count();
       const procurement = await tx.procurement.create({
         data: {
@@ -51,6 +39,19 @@ export async function POST(req: NextRequest) {
               subtotal: data.unitCost * data.qty,
             },
           },
+        },
+      });
+
+      await tx.inventoryLedger.create({
+        data: {
+          variantId: data.variantId,
+          changeQty: data.qty,
+          channel: "PHYSICAL",
+          referenceType: "PROCUREMENT",
+          referenceId: procurement.id,
+          note: "Restock from supplier",
+          previousStockQty,
+          newStockQty,
         },
       });
 

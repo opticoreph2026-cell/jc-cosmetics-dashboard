@@ -28,6 +28,7 @@ export const quickLogSchema = z.object({
   channel: z.enum(["WEB", "FACEBOOK_POST", "FACEBOOK_MARKETPLACE", "PHYSICAL"]),
   paymentMethod: z.enum(["CASH", "GCASH", "MAYA", "BANK_TRANSFER", "CARD_ONLINE", "CARD_OTC"]),
   phone: z.string().optional(),
+  saleDate: z.string().datetime().optional(),
 });
 
 export const restockSchema = z.object({
@@ -80,6 +81,19 @@ export const updateCategorySchema = z.object({
 export const updateOrderSchema = z.object({
   notes: z.string().optional(),
   discount: z.number().min(0).optional(),
+});
+
+export const createSupplierProductSchema = z.object({
+  supplierId: z.string().min(1),
+  variantId: z.string().min(1),
+  unitCost: z.number().min(0),
+  leadTimeDays: z.number().int().min(0).optional(),
+  isPreferred: z.boolean().optional(),
+});
+
+export const updateLedgerSchema = z.object({
+  note: z.string().nullable().optional(),
+  channel: z.enum(["WEB", "FACEBOOK_POST", "FACEBOOK_MARKETPLACE", "PHYSICAL"]).optional(),
 });
 
 export const changePasswordSchema = z.object({

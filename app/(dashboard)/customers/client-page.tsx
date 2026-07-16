@@ -16,10 +16,10 @@ export function CustomersClient({ customers }: { customers: Customer[] }) {
         <THead>
           <TR>
             <TH>Name</TH>
-            <TH hiddenOn="sm">Phone</TH>
-            <TH hiddenOn="md">Email</TH>
+            <TH>Phone</TH>
+            <TH>Email</TH>
             <TH align="right">Lifetime Spend</TH>
-            <TH hiddenOn="md">Since</TH>
+            <TH>Since</TH>
           </TR>
         </THead>
         <TBody>
@@ -28,10 +28,10 @@ export function CustomersClient({ customers }: { customers: Customer[] }) {
               <TD className="text-jc-rose-gold truncate max-w-[180px]">
                 <Link href={`/customers/${c.id}`} className="hover:underline">{c.name}</Link>
               </TD>
-              <TD hiddenOn="sm" className="font-mono text-xs">{c.phone || "\u2014"}</TD>
-              <TD hiddenOn="md">{c.email || "\u2014"}</TD>
+              <TD className="font-mono text-xs">{c.phone || "\u2014"}</TD>
+              <TD>{c.email || "\u2014"}</TD>
               <TD align="right">₱{c.totalLifetimeSpend.toFixed(2)}</TD>
-              <TD hiddenOn="md">
+              <TD>
                 {new Date(c.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
               </TD>
             </TR>

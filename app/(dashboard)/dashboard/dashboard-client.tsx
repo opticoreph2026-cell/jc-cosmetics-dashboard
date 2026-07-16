@@ -4,6 +4,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import Link from "next/link";
 
 const MiniBarChart = lazy(() => import("./mini-bar-chart").then((m) => ({ default: m.MiniBarChart })));
+const DailyTrendChart = lazy(() => import("./daily-trend-chart").then((m) => ({ default: m.DailyTrendChart })));
 
 export function DashboardClient() {
   const [data, setData] = useState<any>(null);
@@ -17,75 +18,60 @@ export function DashboardClient() {
 
   if (!data) return <LoadingSkeleton />;
 
-  const periodKey = period as keyof typeof data;
-  const periodRevenue = Number(data[periodKey].revenue);
+  const p = data[period];
+  const margin = p.revenue > 0 ? ((p.profit / p.revenue) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-sm border border-jc-blush bg-white p-5 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wider text-jc-anchor/60">Revenue</p>
-            <div className="flex gap-1">
-              {(["today", "week", "month"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`rounded-sm px-2 py-0.5 text-xs transition-colors ${
-                    period === p
-                      ? "bg-jc-rose-gold text-white"
-                      : "text-jc-anchor/60 hover:text-jc-anchor"
-                  }`}
-                >
-                  {p === "today" ? "Today" : p === "week" ? "Week" : "Month"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="mt-1 font-display text-3xl text-jc-anchor">₱{periodRevenue.toLocaleString()}</p>
-          {period === "today" && (
-            <p className="text-xs text-jc-anchor/50">{data.today.orders} order{data.today.orders !== 1 ? "s" : ""}</p>
-          )}
-        </div>
-
-        <StatCard label="Low Stock" value={String(data.lowStock.length)} href="/inventory/restock" />
-        <StatCard label="Orders Today" value={String(data.today.orders)} />
+      <div className="flex items-center justify-end gap-1">
+        {(["today", "week", "month"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`rounded-sm px-3 py-1 text-sm transition-colors ${
+              period === p
+                ? "bg-jc-rose-gold text-white"
+                : "border border-jc-blush text-jc-anchor hover:bg-jc-cream/50"
+            }`}
+          >
+            {p === "today" ? "Today" : p === "week" ? "This Week" : "This Month"}
+          </button>
+        ))}
       </div>
 
-      {data.byChannel.length > 0 && (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-sm border border-jc-blush bg-white p-5 lg:col-span-2">
+          <p className="text-xs uppercase tracking-wider text-jc-anchor/60">{period === "today" ? "Today" : period === "week" ? "This Week" : "This Month"}</p>
+          <p className="mt-1 font-display text-3xl text-jc-anchor">₱{p.revenue.toLocaleString()}</p>
+          <p className="text-xs text-jc-anchor/60">
+            ₱{p.profit.toLocaleString()} profit · {p.orders} order{p.orders !== 1 ? "s" : ""} · {p.units} unit{p.units !== 1 ? "s" : ""} sold
+          </p>
+        </div>
+
+        <StatCard label="Units Sold" value={String(p.units)} />
+        <StatCard label="Profit Margin" value={`${margin}%`} href={undefined} />
+      </div>
+
+      {data.daily && data.daily.length > 0 && (
         <div className="rounded-sm border border-jc-blush bg-white p-5">
-          <p className="mb-3 text-xs uppercase tracking-wider text-jc-anchor/60">Today by Channel</p>
-          <Suspense fallback={<div className="h-[150px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
-            <MiniBarChart data={data.byChannel} />
+          <p className="mb-3 text-xs uppercase tracking-wider text-jc-anchor/60">Daily Trend</p>
+          <Suspense fallback={<div className="h-[250px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
+            <DailyTrendChart data={data.daily} />
           </Suspense>
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {data.lowStock.length > 0 && (
-          <div className="rounded-sm border border-amber-200 bg-amber-50 p-4">
-            <p className="mb-2 text-sm font-medium text-amber-800">Reorder Needed</p>
-            <div className="space-y-1.5">
-              {data.lowStock.slice(0, 5).map((v: any) => (
-                <div key={v.id} className="flex items-center justify-between text-xs text-amber-700">
-                  <span>{v.product} — {v.variant}</span>
-                  <span className="font-medium">{v.stock} / {v.reorderAt}</span>
-                </div>
-              ))}
-            </div>
-            {data.lowStock.length > 5 && (
-              <Link href="/inventory/restock" className="mt-2 block text-xs text-amber-700 underline">
-                +{data.lowStock.length - 5} more
-              </Link>
-            )}
-            <Link
-              href="/inventory/restock"
-              className="mt-3 inline-block rounded-sm bg-amber-600 px-3 py-1.5 text-xs text-white hover:bg-amber-700"
-            >
-              Restock now
-            </Link>
-          </div>
-        )}
+        <div className="rounded-sm border border-jc-blush bg-white p-5">
+          <p className="mb-3 text-xs uppercase tracking-wider text-jc-anchor/60">Today by Channel</p>
+          {data.byChannel.length === 0 ? (
+            <p className="text-sm text-jc-anchor/50">No sales today</p>
+          ) : (
+            <Suspense fallback={<div className="h-[120px] bg-jc-cream/30 animate-pulse rounded-sm" />}>
+              <MiniBarChart data={data.byChannel} />
+            </Suspense>
+          )}
+        </div>
 
         <div className="rounded-sm border border-jc-blush bg-white p-4">
           <p className="mb-2 text-xs uppercase tracking-wider text-jc-anchor/60">Recent Orders</p>
@@ -113,6 +99,28 @@ export function DashboardClient() {
           )}
         </div>
       </div>
+
+      {data.lowStock.length > 0 && (
+        <div className="rounded-sm border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-amber-800">Low Stock ({data.lowStock.length})</p>
+            <Link href="/inventory/restock" className="text-xs text-amber-700 underline">Restock now</Link>
+          </div>
+          <div className="space-y-1.5">
+            {data.lowStock.slice(0, 5).map((v: any) => (
+              <div key={v.id} className="flex items-center justify-between text-xs text-amber-700">
+                <span>{v.product} — {v.variant}</span>
+                <span className="font-medium">{v.stock} / {v.reorderAt}</span>
+              </div>
+            ))}
+            {data.lowStock.length > 5 && (
+              <Link href="/inventory/restock" className="block text-xs text-amber-700 underline mt-1">
+                +{data.lowStock.length - 5} more
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <QuickAction href="/quick-log" label="Quick Log" />
@@ -147,12 +155,17 @@ function QuickAction({ href, label }: { href: string; label: string }) {
 function LoadingSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
+      <div className="flex justify-end gap-1">
+        <div className="h-8 w-20 rounded-sm bg-jc-cream/50" />
+        <div className="h-8 w-24 rounded-sm bg-jc-cream/50" />
+        <div className="h-8 w-24 rounded-sm bg-jc-cream/50" />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="h-24 rounded-sm bg-jc-cream/50 lg:col-span-2" />
         <div className="h-24 rounded-sm bg-jc-cream/50" />
         <div className="h-24 rounded-sm bg-jc-cream/50" />
       </div>
-      <div className="h-[150px] rounded-sm bg-jc-cream/50" />
+      <div className="h-[250px] rounded-sm bg-jc-cream/50" />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="h-40 rounded-sm bg-jc-cream/50" />
         <div className="h-40 rounded-sm bg-jc-cream/50" />

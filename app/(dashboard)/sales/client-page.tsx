@@ -16,11 +16,11 @@ export function SalesClient({ orders }: { orders: Order[] }) {
         <THead>
           <TR>
             <TH>Order</TH>
-            <TH hiddenOn="sm">Date</TH>
-            <TH hiddenOn="md">Channel</TH>
-            <TH hiddenOn="md">Customer</TH>
+            <TH>Date</TH>
+            <TH>Channel</TH>
+            <TH>Customer</TH>
             <TH align="right">Total</TH>
-            <TH hiddenOn="md">Payment</TH>
+            <TH>Payment</TH>
           </TR>
         </THead>
         <TBody>
@@ -29,15 +29,15 @@ export function SalesClient({ orders }: { orders: Order[] }) {
               <TD className="text-jc-rose-gold">
                 <Link href={`/sales/${order.id}`} className="hover:underline font-mono text-xs">{order.orderNumber}</Link>
               </TD>
-              <TD hiddenOn="sm" className="whitespace-nowrap">
+              <TD className="whitespace-nowrap">
                 {new Date(order.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
               </TD>
-              <TD hiddenOn="md">
+              <TD>
                 <span className="rounded-sm bg-jc-cream px-2 py-1 text-xs text-jc-anchor">{order.channel}</span>
               </TD>
-              <TD hiddenOn="md">{order.customerName || "\u2014"}</TD>
+              <TD>{order.customerName || "\u2014"}</TD>
               <TD align="right">₱{order.total.toFixed(2)}</TD>
-              <TD hiddenOn="md" className="text-xs">{order.paymentMethod}</TD>
+              <TD className="text-xs">{order.paymentMethod}</TD>
             </TR>
           ))}
           {filtered.length === 0 && <Empty colSpan={6}>No sales found.</Empty>}

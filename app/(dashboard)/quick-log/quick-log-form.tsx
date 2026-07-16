@@ -39,6 +39,7 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
   const [channel, setChannel] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [phone, setPhone] = useState("");
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 16));
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +114,7 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
           channel,
           paymentMethod,
           phone: phone || undefined,
+          saleDate: saleDate ? new Date(saleDate).toISOString() : undefined,
         }),
       });
       if (!res.ok) throw new Error("Failed to log sale");
@@ -213,6 +215,18 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
           </div>
         </div>
       )}
+
+      <div>
+        <label className="block text-sm font-medium text-jc-anchor mb-1">
+          Sale Date <span className="text-jc-anchor/50">(defaults to now)</span>
+        </label>
+        <input
+          type="datetime-local"
+          value={saleDate}
+          onChange={(e) => setSaleDate(e.target.value)}
+          className="block w-full rounded-sm border border-jc-blush px-4 py-3 text-base text-jc-anchor focus:border-jc-rose-gold focus:outline-none"
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-jc-anchor mb-2">Channel</label>

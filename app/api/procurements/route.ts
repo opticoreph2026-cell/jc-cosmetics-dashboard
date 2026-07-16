@@ -24,11 +24,12 @@ export async function POST(req: NextRequest) {
     const data = createProcurementSchema.parse(body);
 
     const totalCost = data.items.reduce((sum, item) => sum + item.unitCost * item.qty, 0);
-    const poCount = await prisma.procurement.count();
+    const lastPO = await prisma.procurement.findFirst({ orderBy: { poNumber: "desc" }, select: { poNumber: true } });
+    const nextNum = lastPO ? parseInt(lastPO.poNumber.replace("PO-", ""), 10) + 1 : 1;
 
     const procurement = await prisma.procurement.create({
       data: {
-        poNumber: `PO-${String(poCount + 1).padStart(4, "0")}`,
+        poNumber: `PO-${String(nextNum).padStart(4, "0")}`,
         supplierId: data.supplierId,
         status: "PENDING",
         totalCost,

@@ -13,15 +13,15 @@ export function NewPOForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState([{ variantId: "", qty: 1, unitCost: "" }]);
+  const [items, setItems] = useState([{ variantId: "", qty: 1, unitCost: 0 }]);
 
   function addItem() {
-    setItems([...items, { variantId: "", qty: 1, unitCost: "" }]);
+    setItems([...items, { variantId: "", qty: 1, unitCost: 0 }]);
   }
 
-  function updateItem(index: number, field: string, value: string | number) {
+  function updateItem(index: number, field: "variantId" | "qty" | "unitCost", value: string | number) {
     const next = [...items];
-    (next[index] as any)[field] = value;
+    next[index] = { ...next[index], [field]: value };
     setItems(next);
   }
 
@@ -31,7 +31,7 @@ export function NewPOForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (items.some((i) => !i.variantId || !i.unitCost)) return;
+    if (items.some((i) => !i.variantId || i.unitCost <= 0 || i.qty < 1)) return;
     setLoading(true);
 
     try {
@@ -40,12 +40,12 @@ export function NewPOForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ supplierId, items }),
       });
-      if (!res.ok) throw new Error("Failed to create PO");
+      if (!res.ok) { const err = await res.text(); throw new Error(err || "Failed to create PO"); }
       toast.success("Purchase order created");
       router.push(`/suppliers/${supplierId}`);
       router.refresh();
-    } catch {
-      toast.error("Failed to create PO");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create PO");
     } finally {
       setLoading(false);
     }
@@ -96,8 +96,8 @@ export function NewPOForm({
                 step="0.01"
                 min="0"
                 required
-                value={item.unitCost}
-                onChange={(e) => updateItem(i, "unitCost", e.target.value)}
+                value={item.unitCost || ""}
+                onChange={(e) => updateItem(i, "unitCost", parseFloat(e.target.value) || 0)}
                 className="block w-full rounded-sm border border-jc-blush px-2 py-2 text-xs text-jc-anchor focus:border-jc-rose-gold focus:outline-none"
               />
             </div>
