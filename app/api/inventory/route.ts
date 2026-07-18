@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
     if (includeVariants) {
       const products = await prisma.product.findMany({
-        select: { id: true, name: true, variants: { select: { id: true, name: true, sku: true, unitCost: true } } },
+        select: { id: true, name: true, variants: { select: { id: true, name: true, sku: true, unitCost: true, currentStockQty: true } } },
         orderBy: { createdAt: "desc" },
         take: 200,
       });

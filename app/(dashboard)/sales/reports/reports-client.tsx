@@ -7,8 +7,11 @@ const PERIODS = [
   { value: "30d", label: "30 days" },
   { value: "90d", label: "90 days" },
   { value: "ytd", label: "YTD" },
-  { value: "all", label: "All time" },
+  { value: "custom", label: "Custom" },
 ] as const;
+
+const CHANNELS = ["", "WEB", "FACEBOOK_POST", "FACEBOOK_MARKETPLACE", "PHYSICAL"] as const;
+const channelLabels: Record<string, string> = { "": "All Channels", WEB: "Web", FACEBOOK_POST: "Facebook Post", FACEBOOK_MARKETPLACE: "Facebook Marketplace", PHYSICAL: "Physical" };
 
 const COLORS = ["#B78B74", "#D2A08C", "#5C4033", "#E5D6CA", "#F0E9E3"];
 
@@ -18,32 +21,49 @@ const CategoryChart = lazy(() => import("./category-chart").then((m) => ({ defau
 
 export function ReportsClient() {
   const [period, setPeriod] = useState("30d");
+  const [channel, setChannel] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  function buildUrl() {
+    const params = new URLSearchParams();
+    if (period === "custom" && from && to) {
+      params.set("from", from);
+      params.set("to", to);
+    } else {
+      params.set("period", period);
+    }
+    if (channel) params.set("channel", channel);
+    return `/api/sales/reports?${params}`;
+  }
+
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/sales/reports?period=${period}`)
+    fetch(buildUrl())
       .then((r) => r.json())
       .then((d) => setData(d))
       .finally(() => setLoading(false));
-  }, [period]);
+  }, [period, channel, from, to]);
 
   function downloadCSV() {
-    if (!data) return;
-    const headers = "Date,Revenue\n";
-    const rows = data.daily.map((d: any) => `${d.date},${d.revenue}`).join("\n");
-    const blob = new Blob([headers + rows], { type: "text/csv" });
+    if (!data?.daily) return;
+    const headers = "Date,Revenue,Orders\n";
+    const rows = data.daily.map((d: any) => `${d.date},${d.revenue},${d.orders || ""}`).join("\n");
+    const blob = new Blob(["\uFEFF" + headers + rows], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `sales-report-${period}.csv`;
+    a.download = `sales-report-${period}-${channel || "all"}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   if (loading) return <ReportsSkeleton />;
   if (!data) return <div className="text-sm text-red-500">Failed to load</div>;
+
+  const s = data.summary;
 
   return (
     <div className="space-y-6">
@@ -61,19 +81,32 @@ export function ReportsClient() {
             {p.label}
           </button>
         ))}
-        <button
-          onClick={downloadCSV}
-          className="ml-auto rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor hover:bg-jc-cream/50"
-        >
+        <select value={channel} onChange={(e) => setChannel(e.target.value)}
+          className="ml-2 rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor">
+          {CHANNELS.map((c) => (<option key={c} value={c}>{channelLabels[c]}</option>))}
+        </select>
+        <button onClick={downloadCSV}
+          className="ml-auto rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor hover:bg-jc-cream/50">
           Export CSV
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Total Revenue" value={`₱${Number(data.summary.totalRevenue).toLocaleString()}`} />
-        <SummaryCard label="Total Orders" value={String(data.summary.totalOrders)} />
-        <SummaryCard label="Avg Order Value" value={`₱${Number(data.summary.avgOrderValue).toLocaleString()}`} />
-        <SummaryCard label="Margin" value={`₱${Number(data.summary.totalMargin).toLocaleString()}`} />
+      {period === "custom" && (
+        <div className="flex items-center gap-2">
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+            className="rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor" />
+          <span className="text-xs text-jc-anchor/60">to</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+            className="rounded-sm border border-jc-blush px-3 py-1.5 text-sm text-jc-anchor" />
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryCard label="Revenue" value={`₱${Number(s.totalRevenue).toLocaleString()}`} />
+        <SummaryCard label="Orders" value={String(s.totalOrders)} />
+        <SummaryCard label="AOV" value={`₱${Number(s.avgOrderValue).toLocaleString()}`} />
+        <SummaryCard label="COGS" value={`₱${Number(s.totalCost).toLocaleString()}`} />
+        <SummaryCard label="Gross Profit" value={`₱${Number(s.totalMargin).toLocaleString()}`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -105,15 +138,10 @@ export function ReportsClient() {
 function ReportsSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="flex gap-2">
-        {[1,2,3,4,5].map((i) => <div key={i} className="h-9 w-20 rounded-sm bg-jc-cream/50" />)}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[1,2,3,4].map((i) => <div key={i} className="h-20 rounded-sm bg-jc-cream/50" />)}
-      </div>
+      <div className="flex gap-2">{[1,2,3,4,5,6].map((i) => <div key={i} className="h-9 w-20 rounded-sm bg-jc-cream/50" />)}</div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{[1,2,3,4,5].map((i) => <div key={i} className="h-20 rounded-sm bg-jc-cream/50" />)}</div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-[300px] rounded-sm bg-jc-cream/50" />
-        <div className="h-[300px] rounded-sm bg-jc-cream/50" />
+        <div className="h-[300px] rounded-sm bg-jc-cream/50" /><div className="h-[300px] rounded-sm bg-jc-cream/50" />
       </div>
     </div>
   );

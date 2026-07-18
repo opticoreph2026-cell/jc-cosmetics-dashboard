@@ -25,7 +25,34 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
   if (!customer) notFound();
 
-  const orderCount = customer.salesOrders.length;
+  const orders = customer.salesOrders;
+  const orderCount = orders.length;
+
+  const firstOrder = orderCount > 0 ? orders[orderCount - 1] : null;
+  const lastOrder = orders[0] || null;
+  const customerMonths = firstOrder
+    ? Math.max(1, Math.round((Date.now() - new Date(firstOrder.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30)))
+    : 0;
+  const ordersPerMonth = customerMonths > 0 ? (orderCount / customerMonths).toFixed(1) : "—";
+  const avgOrderValue = orderCount > 0
+    ? orders.reduce((sum, o) => sum + Number(o.total), 0) / orderCount
+    : 0;
+
+  const channelBreakdown: Record<string, number> = {};
+  for (const o of orders) {
+    channelBreakdown[o.channel] = (channelBreakdown[o.channel] || 0) + Number(o.total);
+  }
+
+  const productFrequency: Record<string, number> = {};
+  for (const o of orders) {
+    for (const item of o.items) {
+      const name = item.variant.product.name;
+      productFrequency[name] = (productFrequency[name] || 0) + item.qty;
+    }
+  }
+  const topProducts = Object.entries(productFrequency)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -54,6 +81,14 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <span className="text-jc-anchor">{orderCount}</span>
             </div>
             <div className="flex justify-between text-sm">
+              <span className="text-jc-anchor/60">Avg Order</span>
+              <span className="text-jc-anchor">₱{avgOrderValue.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-jc-anchor/60">Orders / Month</span>
+              <span className="text-jc-anchor">{ordersPerMonth}</span>
+            </div>
+            <div className="flex justify-between text-sm">
               <span className="text-jc-anchor/60">Since</span>
               <span className="text-jc-anchor">
                 {new Date(customer.createdAt).toLocaleDateString("en-PH", { month: "short", year: "numeric" })}
@@ -79,17 +114,41 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <p className="text-sm text-jc-anchor/70">{customer.notes}</p>
             </div>
           )}
+
+          {Object.keys(channelBreakdown).length > 0 && (
+            <div className="mt-4 border-t border-jc-blush pt-4">
+              <p className="text-xs uppercase tracking-wider text-jc-anchor/50 mb-2">Spend by Channel</p>
+              {Object.entries(channelBreakdown).sort(([, a], [, b]) => b - a).map(([ch, amt]) => (
+                <div key={ch} className="flex justify-between text-xs text-jc-anchor/70">
+                  <span>{ch}</span>
+                  <span>₱{amt.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {topProducts.length > 0 && (
+            <div className="mt-4 border-t border-jc-blush pt-4">
+              <p className="text-xs uppercase tracking-wider text-jc-anchor/50 mb-2">Top Products</p>
+              {topProducts.map(([name, qty]) => (
+                <div key={name} className="flex justify-between text-xs text-jc-anchor/70">
+                  <span className="truncate">{name}</span>
+                  <span className="ml-2 font-mono">{qty}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-sm border border-jc-blush bg-white lg:col-span-2">
           <div className="border-b border-jc-blush px-4 py-3">
-            <h2 className="font-medium text-jc-anchor">Order History</h2>
+            <h2 className="font-medium text-jc-anchor">Order History ({orderCount})</h2>
           </div>
           {orderCount === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-jc-anchor/50">No orders yet.</div>
           ) : (
             <div className="divide-y divide-jc-blush/50">
-              {customer.salesOrders.map((order) => (
+              {orders.map((order) => (
                 <div key={order.id} className="px-4 py-3">
                   <div className="flex items-center justify-between">
                     <Link href={`/sales/${order.id}`} className="text-sm text-jc-rose-gold hover:underline font-mono">
