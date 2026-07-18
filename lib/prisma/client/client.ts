@@ -131,3 +131,8 @@ export type AccountReceivable = Prisma.AccountReceivableModel
  * 
  */
 export type AccountPayable = Prisma.AccountPayableModel
+/**
+ * Model BusinessConfig
+ * 
+ */
+export type BusinessConfig = Prisma.BusinessConfigModel

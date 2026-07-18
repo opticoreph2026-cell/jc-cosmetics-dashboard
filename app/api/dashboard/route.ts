@@ -28,6 +28,10 @@ const orderWithItemsSelect = {
   items: { select: { qty: true, unitPriceAtSale: true, unitCostAtSale: true } },
 } as const;
 
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 export async function GET() {
   try {
     await requireAuth();
@@ -36,49 +40,25 @@ export async function GET() {
     const todayEnd = endOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const monthStart = startOfMonth(now);
-
     const todayEndDate = endOfDay(now);
-
     const monthStartDate = startOfMonth(now);
     const monthEndDate = endOfDay(now);
 
-    const [todayOrders, weekOrders, monthOrders, lowStock, recentOrders, todayExpenses, weekExpenses, monthExpenses, arData, apData, targetData, targetActuals] = await Promise.all([
-      prisma.salesOrder.findMany({
-        where: { createdAt: { gte: todayStart, lte: todayEnd } },
-        select: orderWithItemsSelect,
-      }),
-      prisma.salesOrder.findMany({
-        where: { createdAt: { gte: weekStart, lte: now } },
-        select: orderWithItemsSelect,
-      }),
-      prisma.salesOrder.findMany({
-        where: { createdAt: { gte: monthStart, lte: now } },
-        select: orderWithItemsSelect,
-      }),
-      prisma.productVariant.findMany({
-        where: { isActive: true },
-        select: { id: true, name: true, sku: true, currentStockQty: true, reorderPoint: true, product: { select: { name: true } } },
-        take: 200,
-      }),
-      prisma.salesOrder.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        select: orderSelect,
-      }),
-      prisma.expense.aggregate({ where: { date: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { date: { gte: weekStart, lte: now } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { date: { gte: monthStart, lte: now } }, _sum: { amount: true } }),
-      prisma.accountReceivable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }),
-      prisma.accountPayable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }),
-      prisma.salesTarget.findMany({ where: { year: now.getFullYear(), month: now.getMonth() + 1 } }),
-      prisma.salesOrder.groupBy({
-        by: ["channel"],
-        where: { createdAt: { gte: monthStartDate, lte: monthEndDate } },
-        _sum: { total: true },
-      }),
-    ]);
+    const todayOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, select: orderWithItemsSelect }), []);
+    const weekOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: weekStart, lte: now } }, select: orderWithItemsSelect }), []);
+    const monthOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: monthStart, lte: now } }, select: orderWithItemsSelect }), []);
+    const lowStock = await safeQuery(() => prisma.productVariant.findMany({ where: { isActive: true }, select: { id: true, name: true, sku: true, currentStockQty: true, reorderPoint: true, product: { select: { name: true } } }, take: 200 }), []);
+    const recentOrders = await safeQuery(() => prisma.salesOrder.findMany({ take: 5, orderBy: { createdAt: "desc" }, select: orderSelect }), []);
+    const todayExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }), { _sum: { amount: null } });
+    const weekExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: weekStart, lte: now } }, _sum: { amount: true } }), { _sum: { amount: null } });
+    const monthExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: monthStart, lte: now } }, _sum: { amount: true } }), { _sum: { amount: null } });
+    const arData = await safeQuery(() => prisma.accountReceivable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } });
+    const apData = await safeQuery(() => prisma.accountPayable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } });
+    const targetData = await safeQuery(() => prisma.salesTarget.findMany({ where: { year: now.getFullYear(), month: now.getMonth() + 1 } }), []);
+    const targetActuals = await safeQuery(() => prisma.salesOrder.groupBy({ by: ["channel"], where: { createdAt: { gte: monthStartDate, lte: monthEndDate } }, _sum: { total: true } }), []);
+    const configRows = await safeQuery(() => prisma.businessConfig.findMany({ where: { key: { in: ["monthlyRent", "monthlySalaries", "monthlyUtilities", "monthlyMarketing", "monthlyOther"] as string[] } } }), []);
 
-    const lowStockItems = lowStock.filter((v) => v.currentStockQty <= v.reorderPoint);
+    const lowStockItems = lowStock.filter((v: any) => v.currentStockQty <= v.reorderPoint);
 
     const byChannel: Record<string, number> = {};
     for (const o of todayOrders) {
@@ -86,15 +66,15 @@ export async function GET() {
     }
 
     function mapItems(orders: typeof todayOrders) {
-      return orders.flatMap((o) => o.items.map((i) => ({ qty: i.qty, unitPriceAtSale: Number(i.unitPriceAtSale), unitCostAtSale: Number(i.unitCostAtSale) })));
+      return orders.flatMap((o: any) => o.items.map((i: any) => ({ qty: i.qty, unitPriceAtSale: Number(i.unitPriceAtSale), unitCostAtSale: Number(i.unitCostAtSale) })));
     }
-    const today = { ...calcUnitsAndProfit(mapItems(todayOrders)), revenue: Number(todayOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)), orders: todayOrders.length };
-    const week = { ...calcUnitsAndProfit(mapItems(weekOrders)), revenue: Number(weekOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)) };
-    const month = { ...calcUnitsAndProfit(mapItems(monthOrders)), revenue: Number(monthOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)) };
+    const today = { ...calcUnitsAndProfit(mapItems(todayOrders)), revenue: Number(todayOrders.reduce((s: number, o: any) => s + Number(o.total), 0).toFixed(2)), orders: todayOrders.length };
+    const week = { ...calcUnitsAndProfit(mapItems(weekOrders)), revenue: Number(weekOrders.reduce((s: number, o: any) => s + Number(o.total), 0).toFixed(2)), orders: weekOrders.length };
+    const month = { ...calcUnitsAndProfit(mapItems(monthOrders)), revenue: Number(monthOrders.reduce((s: number, o: any) => s + Number(o.total), 0).toFixed(2)), orders: monthOrders.length };
 
     const dailyMap: Record<string, { revenue: number; profit: number; units: number }> = {};
     for (const o of monthOrders) {
-      const day = format(o.createdAt, "MMM d");
+      const day = format(new Date(o.createdAt), "MMM d");
       if (!dailyMap[day]) dailyMap[day] = { revenue: 0, profit: 0, units: 0 };
       dailyMap[day].revenue += Number(o.total);
       for (const i of o.items) {
@@ -102,34 +82,40 @@ export async function GET() {
         dailyMap[day].profit += (Number(i.unitPriceAtSale) - Number(i.unitCostAtSale)) * i.qty;
       }
     }
-    // round daily profit
     for (const k of Object.keys(dailyMap)) {
       dailyMap[k].profit = Number(dailyMap[k].profit.toFixed(2));
     }
-    const daily = Object.entries(dailyMap).map(([date, d]) => ({
-      date,
-      revenue: Number(d.revenue.toFixed(2)),
-      profit: Number(d.profit.toFixed(2)),
-      units: d.units,
-    }));
+    const daily = Object.entries(dailyMap).map(([date, d]) => ({ date, revenue: Number(d.revenue.toFixed(2)), profit: Number(d.profit.toFixed(2)), units: d.units }));
 
     const todayExpenseTotal = Number(todayExpenses._sum.amount || 0);
     const weekExpenseTotal = Number(weekExpenses._sum.amount || 0);
     const monthExpenseTotal = Number(monthExpenses._sum.amount || 0);
 
-    const arOutstanding = Number(arData._sum.amount || 0) - Number(arData._sum.paidAmount || 0);
-    const apOutstanding = Number(apData._sum.amount || 0) - Number(apData._sum.paidAmount || 0);
+    const arOutstanding = Math.max(0, Number(arData._sum.amount || 0) - Number(arData._sum.paidAmount || 0));
+    const apOutstanding = Math.max(0, Number(apData._sum.amount || 0) - Number(apData._sum.paidAmount || 0));
 
-    const targetActualMap = new Map(targetActuals.map((a) => [a.channel, Number(a._sum.total || 0)]));
-    const targetProgress = targetData.map((t) => ({
-      channel: t.channel,
-      target: Number(t.target),
-      actual: targetActualMap.get(t.channel) ?? 0,
-    }));
-    const totalTarget = targetProgress.reduce((s, t) => s + t.target, 0);
-    const totalActual = targetProgress.reduce((s, t) => s + t.actual, 0);
+    const targetActualMap = new Map(targetActuals.map((a: any) => [a.channel, Number(a._sum.total || 0)]));
+    const targetProgress = targetData.map((t: any) => ({ channel: t.channel, target: Number(t.target), actual: targetActualMap.get(t.channel) ?? 0 }));
+    const totalTarget = targetProgress.reduce((s: number, t: any) => s + t.target, 0);
+    const totalActual = targetProgress.reduce((s: number, t: any) => s + t.actual, 0);
 
-    function addTrueProfit(p: { profit: number }, expenseTotal: number) {
+    // Break-even calculation
+    const configMap = new Map(configRows.map((r: any) => [r.key, parseFloat(r.value) || 0]));
+    const monthlyFixedCosts =
+      (configMap.get("monthlyRent") ?? 0) +
+      (configMap.get("monthlySalaries") ?? 0) +
+      (configMap.get("monthlyUtilities") ?? 0) +
+      (configMap.get("monthlyMarketing") ?? 0) +
+      (configMap.get("monthlyOther") ?? 0);
+
+    const totalMonthUnits = monthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + i.qty, 0), 0);
+    const totalMonthRevenue = monthOrders.reduce((s: number, o: any) => s + Number(o.total), 0);
+    const avgUnitPrice = totalMonthUnits > 0 ? totalMonthRevenue / totalMonthUnits : 0;
+    const avgUnitCost = monthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + Number(i.unitCostAtSale) * i.qty, 0), 0) / (totalMonthUnits || 1);
+    const avgMarginPerUnit = avgUnitPrice - avgUnitCost;
+    const breakEvenUnits = avgMarginPerUnit > 0 ? Math.ceil(monthlyFixedCosts / avgMarginPerUnit) : 0;
+
+    function addTrueProfit(p: any, expenseTotal: number) {
       return { ...p, expenseTotal, trueProfit: Number((p.profit - expenseTotal).toFixed(2)) };
     }
 
@@ -137,17 +123,25 @@ export async function GET() {
       today: addTrueProfit(today, todayExpenseTotal),
       week: addTrueProfit(week, weekExpenseTotal),
       month: addTrueProfit(month, monthExpenseTotal),
-      lowStock: lowStockItems.map((v) => ({
-        id: v.id, product: v.product.name, variant: v.name, sku: v.sku, stock: v.currentStockQty, reorderAt: v.reorderPoint,
-      })),
-      byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: Number(revenue.toFixed(2)) })),
+      lowStock: lowStockItems.map((v: any) => ({ id: v.id, product: v.product.name, variant: v.name, sku: v.sku, stock: v.currentStockQty, reorderAt: v.reorderPoint })),
+      byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: Number((revenue as number).toFixed(2)) })),
       daily,
       recentOrders,
-      arOutstanding: Math.max(0, arOutstanding),
-      apOutstanding: Math.max(0, apOutstanding),
+      arOutstanding,
+      apOutstanding,
       targetProgress,
       totalTarget,
       totalActual,
+      breakeven: {
+        monthlyFixedCosts,
+        avgUnitPrice: Math.round(avgUnitPrice * 100) / 100,
+        avgUnitCost: Math.round(avgUnitCost * 100) / 100,
+        avgMarginPerUnit: Math.round(avgMarginPerUnit * 100) / 100,
+        breakEvenUnitsPerMonth: breakEvenUnits,
+        breakEvenUnitsPerWeek: Math.ceil(breakEvenUnits / 4),
+        breakEvenUnitsPerDay: Math.ceil(breakEvenUnits / 30),
+        breakEvenRevenuePerMonth: Math.round(breakEvenUnits * avgUnitPrice * 100) / 100,
+      },
     });
   } catch (error) {
     return handleApiError(error);

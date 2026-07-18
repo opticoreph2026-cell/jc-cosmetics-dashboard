@@ -401,7 +401,8 @@ export const ModelName = {
   SalesTarget: 'SalesTarget',
   StockAudit: 'StockAudit',
   AccountReceivable: 'AccountReceivable',
-  AccountPayable: 'AccountPayable'
+  AccountPayable: 'AccountPayable',
+  BusinessConfig: 'BusinessConfig'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -417,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "adminUser" | "category" | "product" | "productVariant" | "supplier" | "supplierProduct" | "salesOrder" | "salesOrderItem" | "inventoryLedger" | "customer" | "customerChannelIdentity" | "procurement" | "procurementItem" | "expense" | "salesTarget" | "stockAudit" | "accountReceivable" | "accountPayable"
+    modelProps: "adminUser" | "category" | "product" | "productVariant" | "supplier" | "supplierProduct" | "salesOrder" | "salesOrderItem" | "inventoryLedger" | "customer" | "customerChannelIdentity" | "procurement" | "procurementItem" | "expense" | "salesTarget" | "stockAudit" | "accountReceivable" | "accountPayable" | "businessConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1753,6 +1754,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BusinessConfig: {
+      payload: Prisma.$BusinessConfigPayload<ExtArgs>
+      fields: Prisma.BusinessConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BusinessConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BusinessConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.BusinessConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BusinessConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>
+        }
+        findMany: {
+          args: Prisma.BusinessConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>[]
+        }
+        create: {
+          args: Prisma.BusinessConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>
+        }
+        createMany: {
+          args: Prisma.BusinessConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BusinessConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.BusinessConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>
+        }
+        update: {
+          args: Prisma.BusinessConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.BusinessConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BusinessConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BusinessConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.BusinessConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BusinessConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.BusinessConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBusinessConfig>
+        }
+        groupBy: {
+          args: Prisma.BusinessConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BusinessConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BusinessConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BusinessConfigCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2054,6 +2129,15 @@ export const AccountPayableScalarFieldEnum = {
 } as const
 
 export type AccountPayableScalarFieldEnum = (typeof AccountPayableScalarFieldEnum)[keyof typeof AccountPayableScalarFieldEnum]
+
+
+export const BusinessConfigScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  value: 'value'
+} as const
+
+export type BusinessConfigScalarFieldEnum = (typeof BusinessConfigScalarFieldEnum)[keyof typeof BusinessConfigScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2391,6 +2475,7 @@ export type GlobalOmitConfig = {
   stockAudit?: Prisma.StockAuditOmit
   accountReceivable?: Prisma.AccountReceivableOmit
   accountPayable?: Prisma.AccountPayableOmit
+  businessConfig?: Prisma.BusinessConfigOmit
 }
 
 /* Types for Logging */

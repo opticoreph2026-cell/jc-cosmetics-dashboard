@@ -134,6 +134,38 @@ export function DashboardClient() {
         </div>
       )}
 
+      {data.breakeven && data.breakeven.monthlyFixedCosts > 0 && (
+        <div className="rounded-sm border border-jc-blush bg-white p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs uppercase tracking-wider text-jc-anchor/60">Break-Even Analysis</p>
+            <Link href="/settings" className="text-xs text-jc-rose-gold hover:underline">Adjust costs</Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-jc-anchor/50">Monthly Fixed</p>
+              <p className="font-display text-lg text-jc-anchor">₱{data.breakeven.monthlyFixedCosts.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-jc-anchor/50">Avg Margin / Unit</p>
+              <p className="font-display text-lg text-green-700">₱{data.breakeven.avgMarginPerUnit.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-jc-anchor/50">Units to Break Even</p>
+              <p className="font-display text-lg text-jc-anchor">{data.breakeven.breakEvenUnitsPerMonth.toLocaleString()} / mo</p>
+            </div>
+            <div>
+              <p className="text-xs text-jc-anchor/50">Daily Target</p>
+              <p className="font-display text-lg text-jc-rose-gold">{data.breakeven.breakEvenUnitsPerDay} units (₱{(data.breakeven.breakEvenRevenuePerMonth / 30).toLocaleString()})</p>
+            </div>
+          </div>
+          <div className="mt-2 flex gap-4 text-xs text-jc-anchor/60">
+            <span>{data.breakeven.breakEvenUnitsPerWeek} units / week</span>
+            <span>{data.breakeven.breakEvenUnitsPerMonth} units / month</span>
+            <span>₱{data.breakeven.breakEvenRevenuePerMonth.toLocaleString()} / month revenue</span>
+          </div>
+        </div>
+      )}
+
       {data.lowStock.length > 0 && (
         <div className="rounded-sm border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center justify-between mb-2">

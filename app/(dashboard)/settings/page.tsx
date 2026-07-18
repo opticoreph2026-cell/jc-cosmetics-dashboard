@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 type AdminUser = { id: string; email: string; name: string; role: string; createdAt: string };
 
 export default function SettingsPage() {
-  const router = useRouter();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -16,9 +14,16 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [config, setConfig] = useState<Record<string, string>>({
+    monthlyRent: "0", monthlySalaries: "0", monthlyUtilities: "0", monthlyMarketing: "0", monthlyOther: "0",
+  });
+  const [configLoading, setConfigLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin").then((r) => r.json()).then(setUsers).catch(() => {});
+    fetch("/api/business-config").then((r) => r.json()).then((d) => {
+      if (d && !d.error) setConfig(d);
+    }).catch(() => {});
   }, []);
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -75,9 +80,60 @@ export default function SettingsPage() {
     }
   }
 
+  async function saveConfig() {
+    setConfigLoading(true);
+    try {
+      const res = await fetch("/api/business-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Fixed costs saved");
+    } catch {
+      toast.error("Failed to save fixed costs");
+    } finally {
+      setConfigLoading(false);
+    }
+  }
+
+  const totalFixed = Object.values(config).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+
   return (
     <div className="mx-auto max-w-lg space-y-8">
       <h1 className="font-display text-2xl text-jc-anchor">Settings</h1>
+
+      <div className="rounded-sm border border-jc-blush bg-white p-6">
+        <h2 className="text-sm font-medium text-jc-anchor mb-4">Monthly Fixed Costs</h2>
+        <p className="text-xs text-jc-anchor/50 mb-4">Used to calculate break-even sales targets</p>
+        <div className="space-y-3">
+          {[
+            { key: "monthlyRent", label: "Rent" },
+            { key: "monthlySalaries", label: "Salaries & Wages" },
+            { key: "monthlyUtilities", label: "Utilities" },
+            { key: "monthlyMarketing", label: "Marketing" },
+            { key: "monthlyOther", label: "Other Costs" },
+          ].map(({ key, label }) => (
+            <div key={key} className="flex items-center gap-3">
+              <label className="w-32 text-sm text-jc-anchor">{label}</label>
+              <input
+                type="number" min="0" step="100"
+                value={config[key]}
+                onChange={(e) => setConfig({ ...config, [key]: e.target.value })}
+                className="flex-1 rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor focus:border-jc-rose-gold focus:outline-none"
+              />
+            </div>
+          ))}
+          <div className="flex items-center justify-between pt-2 border-t border-jc-blush">
+            <span className="text-sm font-medium text-jc-anchor">Total Monthly Fixed Costs</span>
+            <span className="font-display text-lg text-jc-rose-gold">₱{totalFixed.toLocaleString()}</span>
+          </div>
+          <button onClick={saveConfig} disabled={configLoading}
+            className="w-full rounded-sm bg-jc-rose-gold px-4 py-2 text-sm text-white hover:bg-jc-rose-gold-light disabled:opacity-50">
+            {configLoading ? "Saving..." : "Save Fixed Costs"}
+          </button>
+        </div>
+      </div>
 
       <div className="rounded-sm border border-jc-blush bg-white p-6">
         <h2 className="text-sm font-medium text-jc-anchor mb-4">Change Password</h2>

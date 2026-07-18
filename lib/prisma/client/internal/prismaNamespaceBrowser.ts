@@ -68,7 +68,8 @@ export const ModelName = {
   SalesTarget: 'SalesTarget',
   StockAudit: 'StockAudit',
   AccountReceivable: 'AccountReceivable',
-  AccountPayable: 'AccountPayable'
+  AccountPayable: 'AccountPayable',
+  BusinessConfig: 'BusinessConfig'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -349,6 +350,15 @@ export const AccountPayableScalarFieldEnum = {
 } as const
 
 export type AccountPayableScalarFieldEnum = (typeof AccountPayableScalarFieldEnum)[keyof typeof AccountPayableScalarFieldEnum]
+
+
+export const BusinessConfigScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  value: 'value'
+} as const
+
+export type BusinessConfigScalarFieldEnum = (typeof BusinessConfigScalarFieldEnum)[keyof typeof BusinessConfigScalarFieldEnum]
 
 
 export const SortOrder = {
