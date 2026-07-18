@@ -87,9 +87,11 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
                       <TD>
                         <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
                           po.status === "RECEIVED" ? "bg-green-100 text-green-700" :
+                          po.status === "PARTIALLY_RECEIVED" ? "bg-blue-100 text-blue-700" :
                           po.status === "PENDING" ? "bg-amber-100 text-amber-700" :
+                          po.status === "CANCELLED" ? "bg-red-100 text-red-500" :
                           "bg-jc-cream text-jc-anchor"
-                        }`}>{({ PENDING: "Pending", ORDERED: "Ordered", RECEIVED: "Received", CANCELLED: "Cancelled" } as Record<string, string>)[po.status] || po.status}</span>
+                        }`}>{({ PENDING: "Pending", ORDERED: "Ordered", PARTIALLY_RECEIVED: "Partial", RECEIVED: "Received", CANCELLED: "Cancelled" } as Record<string, string>)[po.status] || po.status}</span>
                       </TD>
                       <TD align="right">₱{Number(po.totalCost).toFixed(2)}</TD>
                     </TR>

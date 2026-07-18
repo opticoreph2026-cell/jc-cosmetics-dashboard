@@ -20,6 +20,7 @@ export function DashboardClient() {
 
   const p = data[period];
   const margin = p.revenue > 0 ? ((p.profit / p.revenue) * 100).toFixed(1) : "0.0";
+  const trueMargin = p.revenue > 0 ? ((p.trueProfit / p.revenue) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="space-y-6">
@@ -39,17 +40,19 @@ export function DashboardClient() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-sm border border-jc-blush bg-white p-5 lg:col-span-2">
           <p className="text-xs uppercase tracking-wider text-jc-anchor/60">{period === "today" ? "Today" : period === "week" ? "This Week" : "This Month"}</p>
           <p className="mt-1 font-display text-3xl text-jc-anchor">₱{p.revenue.toLocaleString()}</p>
           <p className="text-xs text-jc-anchor/60">
-            ₱{p.profit.toLocaleString()} profit · {p.orders} order{p.orders !== 1 ? "s" : ""} · {p.units} unit{p.units !== 1 ? "s" : ""} sold
+            ₱{p.profit.toLocaleString()} gross profit · {p.orders} order{p.orders !== 1 ? "s" : ""} · {p.units} unit{p.units !== 1 ? "s" : ""} sold
           </p>
         </div>
 
+        <ProfitBreakdown grossProfit={p.profit} expenses={p.expenseTotal} trueProfit={p.trueProfit} />
         <StatCard label="Units Sold" value={String(p.units)} />
-        <StatCard label="Profit Margin" value={`${margin}%`} href={undefined} />
+        <StatCard label="Gross Margin" value={`${margin}%`} />
+        <StatCard label="Net Margin" value={`${trueMargin}%`} />
       </div>
 
       {data.daily && data.daily.length > 0 && (
@@ -122,8 +125,9 @@ export function DashboardClient() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <QuickAction href="/quick-log" label="Quick Log" />
+        <QuickAction href="/expenses" label="Expenses" />
         <QuickAction href="/inventory/new" label="Add Product" />
         <QuickAction href="/inventory/restock" label="Restock" />
       </div>
@@ -131,14 +135,27 @@ export function DashboardClient() {
   );
 }
 
-function StatCard({ label, value, href }: { label: string; value: string; href?: string }) {
-  const content = (
+function ProfitBreakdown({ grossProfit, expenses, trueProfit }: { grossProfit: number; expenses: number; trueProfit: number }) {
+  return (
+    <div className="rounded-sm border border-jc-blush bg-white p-5">
+      <p className="text-xs uppercase tracking-wider text-jc-anchor/60">Net Profit</p>
+      <p className="mt-1 font-display text-2xl text-jc-anchor">₱{trueProfit.toLocaleString()}</p>
+      <div className="mt-1 space-y-0.5 text-xs text-jc-anchor/60">
+        <p>₱{grossProfit.toLocaleString()} gross</p>
+        <p className="text-red-500">− ₱{expenses.toLocaleString()} OPEX</p>
+        <p className="font-medium text-jc-anchor">= ₱{trueProfit.toLocaleString()} net</p>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
     <div className="rounded-sm border border-jc-blush bg-white p-5">
       <p className="text-xs uppercase tracking-wider text-jc-anchor/60">{label}</p>
       <p className="mt-1 font-display text-2xl text-jc-anchor">{value}</p>
     </div>
   );
-  return href ? <Link href={href}>{content}</Link> : content;
 }
 
 function QuickAction({ href, label }: { href: string; label: string }) {

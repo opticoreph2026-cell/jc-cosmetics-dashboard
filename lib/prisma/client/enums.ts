@@ -34,6 +34,7 @@ export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
 export const ProcurementStatus = {
   PENDING: 'PENDING',
   ORDERED: 'ORDERED',
+  PARTIALLY_RECEIVED: 'PARTIALLY_RECEIVED',
   RECEIVED: 'RECEIVED',
   CANCELLED: 'CANCELLED'
 } as const
@@ -46,3 +47,23 @@ export const AdminRole = {
 } as const
 
 export type AdminRole = (typeof AdminRole)[keyof typeof AdminRole]
+
+
+export const ExpenseCategory = {
+  RENT: 'RENT',
+  SALARIES: 'SALARIES',
+  UTILITIES: 'UTILITIES',
+  PACKAGING: 'PACKAGING',
+  FREIGHT: 'FREIGHT',
+  SHIPPING: 'SHIPPING',
+  MARKETING: 'MARKETING',
+  MAINTENANCE: 'MAINTENANCE',
+  EQUIPMENT: 'EQUIPMENT',
+  SOFTWARE: 'SOFTWARE',
+  PROFESSIONAL_FEES: 'PROFESSIONAL_FEES',
+  TAXES: 'TAXES',
+  INSURANCE: 'INSURANCE',
+  OTHER: 'OTHER'
+} as const
+
+export type ExpenseCategory = (typeof ExpenseCategory)[keyof typeof ExpenseCategory]

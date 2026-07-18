@@ -82,3 +82,28 @@ export type Procurement = Prisma.ProcurementModel
  * 
  */
 export type ProcurementItem = Prisma.ProcurementItemModel
+/**
+ * Model Expense
+ * 
+ */
+export type Expense = Prisma.ExpenseModel
+/**
+ * Model SalesTarget
+ * 
+ */
+export type SalesTarget = Prisma.SalesTargetModel
+/**
+ * Model StockAudit
+ * 
+ */
+export type StockAudit = Prisma.StockAuditModel
+/**
+ * Model AccountReceivable
+ * 
+ */
+export type AccountReceivable = Prisma.AccountReceivableModel
+/**
+ * Model AccountPayable
+ * 
+ */
+export type AccountPayable = Prisma.AccountPayableModel

@@ -4,7 +4,8 @@ import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 const updateStatusSchema = z.object({
-  status: z.enum(["PENDING", "ORDERED", "RECEIVED", "CANCELLED"]),
+  status: z.enum(["PENDING", "ORDERED", "PARTIALLY_RECEIVED", "RECEIVED", "CANCELLED"]),
+  items: z.array(z.object({ id: z.string(), qty: z.number().int().min(0) })).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -12,7 +13,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await requireAuth();
     const { id } = await params;
     const body = await req.json();
-    const { status } = updateStatusSchema.parse(body);
+    const parsed = updateStatusSchema.parse(body);
+    const { status, items } = parsed;
 
     const result = await prisma.$transaction(async (tx) => {
       const po = await tx.procurement.findUnique({
@@ -21,9 +23,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       });
       if (!po) throw new Error("Procurement not found");
 
-      if (status === "RECEIVED" && po.status !== "RECEIVED") {
+      if ((status === "RECEIVED" || status === "PARTIALLY_RECEIVED") && po.status !== "RECEIVED") {
+        const itemQtyMap = items ? Object.fromEntries(items.map((i) => [i.id, i.qty])) : {};
+
         for (const item of po.items) {
-          const qtyToReceive = item.qtyOrdered - item.qtyReceived;
+          const qtyToReceive = itemQtyMap[item.id] !== undefined
+            ? Math.min(itemQtyMap[item.id], item.qtyOrdered - item.qtyReceived)
+            : item.qtyOrdered - item.qtyReceived;
           if (qtyToReceive <= 0) continue;
 
           const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
@@ -56,9 +62,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           });
         }
 
+        const updatedPo = await tx.procurement.findUnique({
+          where: { id },
+          include: { items: true },
+        });
+        const allReceived = updatedPo!.items.every((i) => i.qtyReceived >= i.qtyOrdered);
+        const anyReceived = updatedPo!.items.some((i) => i.qtyReceived > 0);
+
         await tx.procurement.update({
           where: { id },
-          data: { status, receivedDate: new Date() },
+          data: {
+            status: allReceived ? "RECEIVED" : anyReceived ? "PARTIALLY_RECEIVED" : po.status,
+            receivedDate: allReceived ? new Date() : anyReceived ? new Date() : undefined,
+          },
         });
       } else {
         await tx.procurement.update({

@@ -106,3 +106,22 @@ export const createAdminUserSchema = z.object({
   name: z.string().optional(),
   password: z.string().min(6),
 });
+
+export const expenseCategories = ["RENT", "SALARIES", "UTILITIES", "PACKAGING", "FREIGHT", "SHIPPING", "MARKETING", "MAINTENANCE", "EQUIPMENT", "SOFTWARE", "PROFESSIONAL_FEES", "TAXES", "INSURANCE", "OTHER"] as const;
+
+export const createExpenseSchema = z.object({
+  description: z.string().min(1),
+  category: z.enum(expenseCategories),
+  amount: z.number().min(0),
+  date: z.string().datetime(),
+  notes: z.string().optional(),
+});
+
+export const updateExpenseSchema = z.object({
+  id: z.string().min(1),
+  description: z.string().min(1).optional(),
+  category: z.enum(expenseCategories).optional(),
+  amount: z.number().min(0).optional(),
+  date: z.string().datetime().optional(),
+  notes: z.string().optional(),
+});

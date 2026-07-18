@@ -43,12 +43,14 @@ export default async function ProcurementPage() {
               <TD>
                 <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
                   po.status === "RECEIVED" ? "bg-green-100 text-green-700" :
+                  po.status === "PARTIALLY_RECEIVED" ? "bg-blue-100 text-blue-700" :
                   po.status === "PENDING" ? "bg-amber-100 text-amber-700" :
+                  po.status === "CANCELLED" ? "bg-red-100 text-red-500" :
                   "bg-jc-cream text-jc-anchor"
-                }`}>{({ PENDING: "Pending", ORDERED: "Ordered", RECEIVED: "Received", CANCELLED: "Cancelled" } as Record<string, string>)[po.status] || po.status}</span>
+                }`}>{({ PENDING: "Pending", ORDERED: "Ordered", PARTIALLY_RECEIVED: "Partial", RECEIVED: "Received", CANCELLED: "Cancelled" } as Record<string, string>)[po.status] || po.status}</span>
               </TD>
               <TD align="right">₱{Number(po.totalCost).toFixed(2)}</TD>
-              <TD>{po.status === "PENDING" && <ReceivePOButton poId={po.id} poNumber={po.poNumber} />}</TD>
+              <TD>{(po.status === "PENDING" || po.status === "PARTIALLY_RECEIVED") && <ReceivePOButton poId={po.id} poNumber={po.poNumber} />}</TD>
             </TR>
           ))}
           {procurements.length === 0 && <Empty colSpan={7}>No procurement orders yet. Create one from a supplier&apos;s page.</Empty>}

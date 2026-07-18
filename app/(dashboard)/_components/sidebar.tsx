@@ -15,6 +15,7 @@ import {
   Tags,
   ClipboardList,
   BookOpen,
+  DollarSign,
   Settings,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/categories", label: "Categories", icon: Tags },
   { href: "/procurement", label: "Procurement", icon: ClipboardList },
   { href: "/ledger", label: "Ledger", icon: BookOpen },
+  { href: "/expenses", label: "Expenses", icon: DollarSign },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

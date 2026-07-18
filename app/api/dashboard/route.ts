@@ -37,7 +37,9 @@ export async function GET() {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const monthStart = startOfMonth(now);
 
-    const [todayOrders, weekOrders, monthOrders, lowStock, recentOrders] = await Promise.all([
+    const todayEndDate = endOfDay(now);
+
+    const [todayOrders, weekOrders, monthOrders, lowStock, recentOrders, todayExpenses, weekExpenses, monthExpenses] = await Promise.all([
       prisma.salesOrder.findMany({
         where: { createdAt: { gte: todayStart, lte: todayEnd } },
         select: orderWithItemsSelect,
@@ -60,6 +62,9 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         select: orderSelect,
       }),
+      prisma.expense.aggregate({ where: { date: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { date: { gte: weekStart, lte: now } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { date: { gte: monthStart, lte: now } }, _sum: { amount: true } }),
     ]);
 
     const lowStockItems = lowStock.filter((v) => v.currentStockQty <= v.reorderPoint);
@@ -97,10 +102,18 @@ export async function GET() {
       units: d.units,
     }));
 
+    const todayExpenseTotal = Number(todayExpenses._sum.amount || 0);
+    const weekExpenseTotal = Number(weekExpenses._sum.amount || 0);
+    const monthExpenseTotal = Number(monthExpenses._sum.amount || 0);
+
+    function addTrueProfit(p: { profit: number }, expenseTotal: number) {
+      return { ...p, expenseTotal, trueProfit: Number((p.profit - expenseTotal).toFixed(2)) };
+    }
+
     return json({
-      today,
-      week,
-      month,
+      today: addTrueProfit(today, todayExpenseTotal),
+      week: addTrueProfit(week, weekExpenseTotal),
+      month: addTrueProfit(month, monthExpenseTotal),
       lowStock: lowStockItems.map((v) => ({
         id: v.id, product: v.product.name, variant: v.name, sku: v.sku, stock: v.currentStockQty, reorderAt: v.reorderPoint,
       })),

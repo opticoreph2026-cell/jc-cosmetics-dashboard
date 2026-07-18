@@ -63,7 +63,12 @@ export const ModelName = {
   Customer: 'Customer',
   CustomerChannelIdentity: 'CustomerChannelIdentity',
   Procurement: 'Procurement',
-  ProcurementItem: 'ProcurementItem'
+  ProcurementItem: 'ProcurementItem',
+  Expense: 'Expense',
+  SalesTarget: 'SalesTarget',
+  StockAudit: 'StockAudit',
+  AccountReceivable: 'AccountReceivable',
+  AccountPayable: 'AccountPayable'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -251,6 +256,8 @@ export const ProcurementScalarFieldEnum = {
   receivedDate: 'receivedDate',
   notes: 'notes',
   totalCost: 'totalCost',
+  freightCost: 'freightCost',
+  otherCost: 'otherCost',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -270,6 +277,78 @@ export const ProcurementItemScalarFieldEnum = {
 } as const
 
 export type ProcurementItemScalarFieldEnum = (typeof ProcurementItemScalarFieldEnum)[keyof typeof ProcurementItemScalarFieldEnum]
+
+
+export const ExpenseScalarFieldEnum = {
+  id: 'id',
+  description: 'description',
+  category: 'category',
+  amount: 'amount',
+  date: 'date',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
+export const SalesTargetScalarFieldEnum = {
+  id: 'id',
+  month: 'month',
+  year: 'year',
+  channel: 'channel',
+  target: 'target',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SalesTargetScalarFieldEnum = (typeof SalesTargetScalarFieldEnum)[keyof typeof SalesTargetScalarFieldEnum]
+
+
+export const StockAuditScalarFieldEnum = {
+  id: 'id',
+  variantId: 'variantId',
+  expectedQty: 'expectedQty',
+  actualQty: 'actualQty',
+  variance: 'variance',
+  notes: 'notes',
+  conductedAt: 'conductedAt'
+} as const
+
+export type StockAuditScalarFieldEnum = (typeof StockAuditScalarFieldEnum)[keyof typeof StockAuditScalarFieldEnum]
+
+
+export const AccountReceivableScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  salesOrderId: 'salesOrderId',
+  amount: 'amount',
+  paidAmount: 'paidAmount',
+  dueDate: 'dueDate',
+  status: 'status',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AccountReceivableScalarFieldEnum = (typeof AccountReceivableScalarFieldEnum)[keyof typeof AccountReceivableScalarFieldEnum]
+
+
+export const AccountPayableScalarFieldEnum = {
+  id: 'id',
+  supplierId: 'supplierId',
+  procurementId: 'procurementId',
+  amount: 'amount',
+  paidAmount: 'paidAmount',
+  dueDate: 'dueDate',
+  status: 'status',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AccountPayableScalarFieldEnum = (typeof AccountPayableScalarFieldEnum)[keyof typeof AccountPayableScalarFieldEnum]
 
 
 export const SortOrder = {
