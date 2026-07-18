@@ -39,7 +39,10 @@ export async function GET() {
 
     const todayEndDate = endOfDay(now);
 
-    const [todayOrders, weekOrders, monthOrders, lowStock, recentOrders, todayExpenses, weekExpenses, monthExpenses] = await Promise.all([
+    const monthStartDate = startOfMonth(now);
+    const monthEndDate = endOfDay(now);
+
+    const [todayOrders, weekOrders, monthOrders, lowStock, recentOrders, todayExpenses, weekExpenses, monthExpenses, arData, apData, targetData, targetActuals] = await Promise.all([
       prisma.salesOrder.findMany({
         where: { createdAt: { gte: todayStart, lte: todayEnd } },
         select: orderWithItemsSelect,
@@ -65,6 +68,14 @@ export async function GET() {
       prisma.expense.aggregate({ where: { date: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }),
       prisma.expense.aggregate({ where: { date: { gte: weekStart, lte: now } }, _sum: { amount: true } }),
       prisma.expense.aggregate({ where: { date: { gte: monthStart, lte: now } }, _sum: { amount: true } }),
+      prisma.accountReceivable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }),
+      prisma.accountPayable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }),
+      prisma.salesTarget.findMany({ where: { year: now.getFullYear(), month: now.getMonth() + 1 } }),
+      prisma.salesOrder.groupBy({
+        by: ["channel"],
+        where: { createdAt: { gte: monthStartDate, lte: monthEndDate } },
+        _sum: { total: true },
+      }),
     ]);
 
     const lowStockItems = lowStock.filter((v) => v.currentStockQty <= v.reorderPoint);
@@ -106,6 +117,18 @@ export async function GET() {
     const weekExpenseTotal = Number(weekExpenses._sum.amount || 0);
     const monthExpenseTotal = Number(monthExpenses._sum.amount || 0);
 
+    const arOutstanding = Number(arData._sum.amount || 0) - Number(arData._sum.paidAmount || 0);
+    const apOutstanding = Number(apData._sum.amount || 0) - Number(apData._sum.paidAmount || 0);
+
+    const targetActualMap = new Map(targetActuals.map((a) => [a.channel, Number(a._sum.total || 0)]));
+    const targetProgress = targetData.map((t) => ({
+      channel: t.channel,
+      target: Number(t.target),
+      actual: targetActualMap.get(t.channel) ?? 0,
+    }));
+    const totalTarget = targetProgress.reduce((s, t) => s + t.target, 0);
+    const totalActual = targetProgress.reduce((s, t) => s + t.actual, 0);
+
     function addTrueProfit(p: { profit: number }, expenseTotal: number) {
       return { ...p, expenseTotal, trueProfit: Number((p.profit - expenseTotal).toFixed(2)) };
     }
@@ -120,6 +143,11 @@ export async function GET() {
       byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: Number(revenue.toFixed(2)) })),
       daily,
       recentOrders,
+      arOutstanding: Math.max(0, arOutstanding),
+      apOutstanding: Math.max(0, apOutstanding),
+      targetProgress,
+      totalTarget,
+      totalActual,
     });
   } catch (error) {
     return handleApiError(error);

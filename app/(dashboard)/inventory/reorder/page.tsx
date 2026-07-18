@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, Package, ShoppingCart, Truck } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Package, ShoppingCart, Truck, FileDown } from "lucide-react";
 
 interface Suggestion {
   id: string;
@@ -21,6 +22,7 @@ interface Suggestion {
 export default function ReorderPage() {
   const [data, setData] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetch("/api/inventory/reorder")
@@ -33,6 +35,42 @@ export default function ReorderPage() {
   const low = data.filter((d) => d.currentStock > 0 && d.daysRemaining < 14);
   const watch = data.filter((d) => d.daysRemaining >= 14);
 
+  const supplierGroups: Record<string, { supplier: { id: string; name: string }; items: Suggestion[] }> = {};
+  for (const item of data) {
+    if (!item.preferredSupplier) continue;
+    const key = item.preferredSupplier.id;
+    if (!supplierGroups[key]) supplierGroups[key] = { supplier: item.preferredSupplier, items: [] };
+    supplierGroups[key].items.push(item);
+  }
+
+  async function generateAllPOs() {
+    const groups = Object.values(supplierGroups);
+    if (groups.length === 0) {
+      toast.error("No items with preferred suppliers");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/procurements/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groups: groups.map((g) => ({
+            supplierId: g.supplier.id,
+            items: g.items.map((i) => ({ variantId: i.id, qty: i.suggestedQty })),
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create POs");
+      const pos = await res.json();
+      toast.success(`Created ${pos.length} purchase order(s) for ${groups.length} supplier(s)`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   if (loading) return <div className="h-40 animate-pulse rounded-sm bg-jc-cream/50" />;
 
   return (
@@ -42,6 +80,12 @@ export default function ReorderPage() {
           <Link href="/inventory" className="text-sm text-jc-rose-gold hover:underline">&larr; Inventory</Link>
           <h1 className="font-display text-2xl text-jc-anchor mt-1">Reorder Suggestions</h1>
         </div>
+        {Object.keys(supplierGroups).length > 0 && (
+          <button onClick={generateAllPOs} disabled={generating}
+            className="flex items-center gap-2 rounded-sm bg-jc-rose-gold px-4 py-2 text-sm font-medium text-white hover:bg-jc-rose-gold/90 disabled:opacity-50">
+            <FileDown size={16} /> {generating ? "Generating..." : `Generate POs (${Object.keys(supplierGroups).length})`}
+          </button>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -120,6 +164,26 @@ export default function ReorderPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {Object.keys(supplierGroups).length > 0 && (
+        <div className="rounded-sm border border-jc-blush bg-white p-4">
+          <p className="text-xs uppercase tracking-wider text-jc-anchor/60 mb-3">Suppliers &mdash; Quick PO by Supplier</p>
+          <div className="space-y-2">
+            {Object.entries(supplierGroups).map(([sId, group]) => (
+              <div key={sId} className="flex items-center justify-between rounded-sm bg-jc-cream/30 px-4 py-3">
+                <div>
+                  <Link href={`/suppliers/${sId}`} className="text-sm font-medium text-jc-anchor hover:text-jc-rose-gold">{group.supplier.name}</Link>
+                  <p className="text-xs text-jc-anchor/50">{group.items.length} item(s) · ₱{group.items.reduce((s, i) => s + i.suggestedQty * (parseFloat(i.preferredSupplier?.unitCost || "0") || 0), 0).toFixed(2)} est.</p>
+                </div>
+                <Link href={`/suppliers/${sId}/new-po`}
+                  className="flex items-center gap-1 rounded-sm bg-jc-rose-gold px-3 py-1.5 text-xs font-medium text-white hover:bg-jc-rose-gold/90">
+                  <Truck size={12} /> Create PO
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

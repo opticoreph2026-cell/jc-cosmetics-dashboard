@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Barcode, Search } from "lucide-react";
 
 const CHANNELS = [
   { value: "FACEBOOK_POST", label: "FB Post" },
@@ -19,7 +20,7 @@ const PAYMENT_METHODS = [
   { value: "CARD_OTC", label: "Card OTC" },
 ] as const;
 
-type VariantItem = { id: string; name: string; sku: string; product: { name: string }; sellingPrice: number };
+type VariantItem = { id: string; name: string; sku: string; barcode: string | null; product: { name: string }; sellingPrice: number };
 
 type CartItem = {
   variantId: string;
@@ -33,6 +34,7 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [selectedVariant, setSelectedVariant] = useState<VariantItem | null>(null);
   const [addQty, setAddQty] = useState(1);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -42,6 +44,9 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 16));
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const barcodeRef = useRef<HTMLInputElement>(null);
+
+  const variantMap = new Map(variants.map((v) => [v.id, v]));
 
   const filtered = variants.filter(
     (v) =>
@@ -61,6 +66,45 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => {
+    if (barcodeRef.current) barcodeRef.current.focus();
+  }, []);
+
+  function handleBarcodeSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const code = barcode.trim();
+    if (!code) return;
+
+    const variant = variants.find((v) => v.barcode === code);
+    if (!variant) {
+      toast.error(`No product found with barcode: ${code}`);
+      setBarcode("");
+      return;
+    }
+
+    addToCartDirect(variant);
+    setBarcode("");
+    if (barcodeRef.current) barcodeRef.current.focus();
+  }
+
+  function addToCartDirect(variant: VariantItem, qty = 1) {
+    const existing = cart.find((c) => c.variantId === variant.id);
+    if (existing) {
+      setCart(cart.map((c) => (c.variantId === variant.id ? { ...c, qty: c.qty + qty } : c)));
+    } else {
+      setCart([
+        ...cart,
+        {
+          variantId: variant.id,
+          label: `${variant.product.name} \u2014 ${variant.name}`,
+          sku: variant.sku,
+          qty,
+          unitPrice: variant.sellingPrice,
+        },
+      ]);
+    }
+  }
+
   function handleSelect(variant: VariantItem) {
     setSelectedVariant(variant);
     setSearch(variant.product.name + " \u2014 " + variant.name);
@@ -69,21 +113,7 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
 
   function addToCart() {
     if (!selectedVariant) return;
-    const existing = cart.find((c) => c.variantId === selectedVariant.id);
-    if (existing) {
-      setCart(cart.map((c) => (c.variantId === selectedVariant.id ? { ...c, qty: c.qty + addQty } : c)));
-    } else {
-      setCart([
-        ...cart,
-        {
-          variantId: selectedVariant.id,
-          label: `${selectedVariant.product.name} \u2014 ${selectedVariant.name}`,
-          sku: selectedVariant.sku,
-          qty: addQty,
-          unitPrice: selectedVariant.sellingPrice,
-        },
-      ]);
-    }
+    addToCartDirect(selectedVariant, addQty);
     setSelectedVariant(null);
     setSearch("");
     setAddQty(1);
@@ -123,6 +153,7 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
       setChannel("");
       setPaymentMethod("");
       setPhone("");
+      if (barcodeRef.current) barcodeRef.current.focus();
       router.refresh();
     } catch {
       toast.error("Failed to log sale");
@@ -134,8 +165,32 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-3">
+        <div className="rounded-sm border-2 border-jc-rose-gold/30 bg-jc-cream/20 p-3">
+          <label htmlFor="barcode" className="flex items-center gap-2 text-sm font-medium text-jc-anchor mb-2">
+            <Barcode size={16} /> Scan Barcode
+          </label>
+          <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+            <input
+              ref={barcodeRef}
+              id="barcode"
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="Scan or type barcode..."
+              autoComplete="off"
+              className="block flex-1 rounded-sm border border-jc-blush px-4 py-3 text-base text-jc-anchor focus:border-jc-rose-gold focus:outline-none"
+            />
+            <button type="submit"
+              className="rounded-sm bg-jc-rose-gold px-4 py-3 text-sm font-medium text-white hover:bg-jc-rose-gold/90">
+              Add
+            </button>
+          </form>
+        </div>
+
         <div ref={searchRef} className="relative">
-          <label className="block text-sm font-medium text-jc-anchor mb-1">Add Item</label>
+          <label className="flex items-center gap-2 text-sm font-medium text-jc-anchor mb-1">
+            <Search size={14} /> Search Item
+          </label>
           <div className="flex gap-2">
             <input
               type="text"

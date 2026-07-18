@@ -17,6 +17,7 @@ export default async function QuickLogPage() {
     id: v.id,
     name: v.name,
     sku: v.sku,
+    barcode: v.barcode,
     product: v.product,
     sellingPrice: Number(v.sellingPrice),
   }));

@@ -64,7 +64,7 @@ export function DashboardClient() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <div className="rounded-sm border border-jc-blush bg-white p-5">
           <p className="mb-3 text-xs uppercase tracking-wider text-jc-anchor/60">Today by Channel</p>
           {data.byChannel.length === 0 ? (
@@ -101,13 +101,44 @@ export function DashboardClient() {
             </div>
           )}
         </div>
+
+        <div className="space-y-4">
+          <div className="rounded-sm border border-jc-blush bg-white p-4">
+            <p className="text-xs uppercase tracking-wider text-jc-anchor/60">A/R Outstanding</p>
+            <p className="mt-1 font-display text-xl text-jc-anchor">₱{data.arOutstanding.toLocaleString()}</p>
+            <Link href="/ar" className="text-xs text-jc-rose-gold hover:underline">View AR</Link>
+          </div>
+          <div className="rounded-sm border border-jc-blush bg-white p-4">
+            <p className="text-xs uppercase tracking-wider text-jc-anchor/60">A/P Outstanding</p>
+            <p className="mt-1 font-display text-xl text-jc-anchor">₱{data.apOutstanding.toLocaleString()}</p>
+            <Link href="/ap" className="text-xs text-jc-rose-gold hover:underline">View AP</Link>
+          </div>
+        </div>
       </div>
+
+      {data.targetProgress && data.targetProgress.length > 0 && (
+        <div className="rounded-sm border border-jc-blush bg-white p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs uppercase tracking-wider text-jc-anchor/60">Monthly Target</p>
+            <Link href="/sales/targets" className="text-xs text-jc-rose-gold hover:underline">Details</Link>
+          </div>
+          <div className="flex items-center gap-4 mb-2">
+            <span className="text-xs text-jc-anchor/60">₱{data.totalActual.toLocaleString()} / ₱{data.totalTarget.toLocaleString()}</span>
+            <span className={`text-xs font-medium ${data.totalTarget > 0 && (data.totalActual / data.totalTarget) >= 1 ? "text-green-600" : "text-jc-anchor/70"}`}>
+              {data.totalTarget > 0 ? `${Math.round((data.totalActual / data.totalTarget) * 100)}%` : "—"}
+            </span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-jc-cream">
+            <div className="h-2 rounded-full bg-jc-rose-gold transition-all" style={{ width: `${Math.min(100, data.totalTarget > 0 ? (data.totalActual / data.totalTarget) * 100 : 0)}%` }} />
+          </div>
+        </div>
+      )}
 
       {data.lowStock.length > 0 && (
         <div className="rounded-sm border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-amber-800">Low Stock ({data.lowStock.length})</p>
-            <Link href="/inventory/restock" className="text-xs text-amber-700 underline">Restock now</Link>
+            <Link href="/inventory/reorder" className="text-xs text-amber-700 underline">Reorder suggestions</Link>
           </div>
           <div className="space-y-1.5">
             {data.lowStock.slice(0, 5).map((v: any) => (
@@ -117,7 +148,7 @@ export function DashboardClient() {
               </div>
             ))}
             {data.lowStock.length > 5 && (
-              <Link href="/inventory/restock" className="block text-xs text-amber-700 underline mt-1">
+              <Link href="/inventory/reorder" className="block text-xs text-amber-700 underline mt-1">
                 +{data.lowStock.length - 5} more
               </Link>
             )}
@@ -128,8 +159,8 @@ export function DashboardClient() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <QuickAction href="/quick-log" label="Quick Log" />
         <QuickAction href="/expenses" label="Expenses" />
-        <QuickAction href="/inventory/new" label="Add Product" />
-        <QuickAction href="/inventory/restock" label="Restock" />
+        <QuickAction href="/stock-audit" label="Stock Audit" />
+        <QuickAction href="/inventory/reorder" label="Reorder" />
       </div>
     </div>
   );
@@ -183,7 +214,8 @@ function LoadingSkeleton() {
         <div className="h-24 rounded-sm bg-jc-cream/50" />
       </div>
       <div className="h-[250px] rounded-sm bg-jc-cream/50" />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="h-40 rounded-sm bg-jc-cream/50" />
         <div className="h-40 rounded-sm bg-jc-cream/50" />
         <div className="h-40 rounded-sm bg-jc-cream/50" />
       </div>
