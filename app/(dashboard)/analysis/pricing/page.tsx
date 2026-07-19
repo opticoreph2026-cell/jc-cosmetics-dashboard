@@ -217,7 +217,7 @@ export default async function PricingAnalysisPage() {
                   </td>
                   <td className="py-2 pr-2 whitespace-nowrap">
                     <div className="font-medium">{p.productName}</div>
-                    <div className="text-[10px] text-jc-rose-gold">{p.category}</div>
+                    <div className="text-[10px] text-jc-rose-gold">{p.name}</div>
                   </td>
                   <td className="py-2 pr-2 font-mono">P{p.unitCost.toFixed(0)}</td>
                   <td className="py-2 pr-2 font-mono">P{p.sellingPrice.toFixed(0)}</td>
