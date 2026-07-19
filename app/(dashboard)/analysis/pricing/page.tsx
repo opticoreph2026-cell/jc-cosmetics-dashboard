@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
+  CartesianGrid,
 } from "recharts";
 
 type ProductRow = {
@@ -18,7 +18,6 @@ type ProductRow = {
   isBelowBreakEven: boolean; isMarginLow: boolean;
   competitiveMin: number; competitiveMax: number;
   isCompetitivelyPriced: boolean; priceLevel: string;
-  priceAdvice: string;
 };
 
 type ApiData = {
@@ -56,7 +55,7 @@ export default function PricingAnalysisPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-6 text-jc-anchor">Kinakalkula ang datos...</div>;
+  if (loading) return <div className="p-6 text-jc-anchor">Calculating your pricing analysis...</div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
   if (!data) return null;
 
@@ -74,10 +73,10 @@ export default function PricingAnalysisPage() {
       <div className="flex flex-col gap-1">
         <h1 className="font-display text-2xl text-jc-anchor flex items-center gap-2">
           <BarChart3 className="text-jc-rose-gold" size={28} />
-          AI Pricing & Sales Predictor
+          AI Pricing & Sales Analysis
         </h1>
         <p className="text-sm text-jc-rose-gold leading-relaxed">
-          <strong>Simple lang:</strong> Ipinapakita dito kung tama ba ang presyo mo, ilang units kailangan ibenta para kumita, at ano ang hula ng AI sa susunod na benta.
+          See if your prices are right, how many units you need to sell to profit, and what the AI predicts for future sales.
         </p>
       </div>
 
@@ -85,44 +84,44 @@ export default function PricingAnalysisPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <HealthCard
           icon={<DollarSign size={20} />}
-          label="Kita Ngayong Buwan"
+          label="This Month's Profit"
           value={`₱${summary.netProfit.toFixed(0)}`}
-          sub={`Gastos: ₱${summary.monthlyFixedCosts.toFixed(0)}`}
+          sub={`Expenses: ₱${summary.monthlyFixedCosts.toFixed(0)}/mo`}
           good={summary.isProfitable}
         />
         <HealthCard
           icon={<ShoppingCart size={20} />}
-          label="Units na Naisa"
+          label="Units Sold"
           value={summary.currentMonthlyUnits.toLocaleString()}
-          sub={`Kailangan: ${summary.breakEvenUnits.toLocaleString()} para hindi lugi`}
+          sub={`Need ${summary.breakEvenUnits.toLocaleString()} to break even`}
           good={summary.isBreakEvenUnit}
         />
         <HealthCard
           icon={<TrendingUp size={20} />}
-          label="Average na Presyo"
+          label="Avg Selling Price"
           value={`₱${summary.avgSellingPrice.toFixed(0)}`}
-          sub={`Cost: ₱${summary.avgUnitCost.toFixed(0)} · Tubo: ₱${summary.marginPerUnit.toFixed(0)}/pc`}
+          sub={`Cost: ₱${summary.avgUnitCost.toFixed(0)} · Profit: ₱${summary.marginPerUnit.toFixed(0)}/unit`}
           good={summary.avgMargin > 30}
         />
         <HealthCard
           icon={<BarChart3 size={20} />}
-          label="Margin %"
+          label="Average Margin"
           value={`${summary.avgMargin.toFixed(1)}%`}
-          sub={`Healthy: 30-60% sa cosmetics`}
+          sub={`Healthy range: 30-60% for cosmetics`}
           good={summary.avgMargin > 30}
         />
       </div>
 
-      {/* AI PREDICTOR - TREND CHART */}
+      {/* AI PREDICTOR */}
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2">
               <LineChart size={20} className="text-jc-rose-gold" />
-              AI Sales Predictor — Hula ng Susunod na Benta
+              AI Sales Predictor
             </h2>
             <p className="text-xs text-jc-rose-gold mt-1">
-              Base sa nakaraang {salesTrend.history.length} buwan, hinuhulaan ng AI ang susunod mong benta.
+              Based on the last {salesTrend.history.length} months of data, the AI predicts your upcoming sales.
             </p>
           </div>
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -130,8 +129,8 @@ export default function PricingAnalysisPage() {
             salesTrend.trendDirection === "down" ? "bg-red-100 text-red-700" :
             "bg-yellow-100 text-yellow-700"
           }`}>
-            {salesTrend.trendDirection === "up" ? "📈 Tumataas" :
-             salesTrend.trendDirection === "down" ? "📉 Bumababa" : "➡️ Stable"}
+            {salesTrend.trendDirection === "up" ? "Trending Up" :
+             salesTrend.trendDirection === "down" ? "Trending Down" : "Stable"}
           </span>
         </div>
         <div className="h-64">
@@ -147,22 +146,22 @@ export default function PricingAnalysisPage() {
           </ResponsiveContainer>
         </div>
         <div className="mt-3 text-xs text-jc-rose-gold flex flex-wrap gap-x-6 gap-y-1">
-          <span>📈 {salesTrend.growthRate > 0 ? "+" : ""}{salesTrend.growthRate}% growth vs simula</span>
-          <span>🎯 Confidence: {salesTrend.confidence === "high" ? "Mataas" : salesTrend.confidence === "medium" ? "Katamtaman" : "Mababa"}</span>
+          <span>{salesTrend.growthRate > 0 ? "+" : ""}{salesTrend.growthRate}% growth from start</span>
+          <span>Confidence: {salesTrend.confidence === "high" ? "High" : salesTrend.confidence === "medium" ? "Medium" : "Low"}</span>
           {salesTrend.prediction.length > 0 && (
-            <span>🔮 Hula sa {salesTrend.prediction[0].label}: {salesTrend.prediction[0].units} units</span>
+            <span>Predicted for {salesTrend.prediction[0].label}: {salesTrend.prediction[0].units} units</span>
           )}
         </div>
       </section>
 
-      {/* HOW MANY TO SELL — PROFIT TARGETS */}
+      {/* PROFIT TARGETS */}
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-1">
           <Target size={20} className="text-jc-rose-gold" />
-          Ilang Kailangan Mong Ibenta?
+          How Many Units Must You Sell?
         </h2>
         <p className="text-xs text-jc-rose-gold mb-4">
-          Kung gusto mong kumita ng specific na halaga, ito ang kailangan mong units at benta:
+          Set a profit target and see exactly how many units you need to sell this month to hit it:
         </p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {profitScenarios.map((sc) => (
@@ -183,14 +182,14 @@ export default function PricingAnalysisPage() {
               </div>
               <div className="text-xs text-jc-rose-gold mt-1">
                 {sc.isAchievable
-                  ? `₱${sc.neededSales.toLocaleString()} na benta`
-                  : "Medyo mahirap abutin sa ngayon"}
+                  ? `₱${sc.neededSales.toLocaleString()} in sales`
+                  : "Hard to reach right now"}
               </div>
               {sc.isAchievable && sc.targetProfit > 0 && (
                 <div className="mt-2 text-[10px] text-green-700">
                   {sc.unitsNeeded > summary.currentMonthlyUnits
-                    ? `${sc.unitsNeeded - summary.currentMonthlyUnits} units pa kesa ngayon`
-                    : "Kaya mo na ito ngayon!"}
+                    ? `${sc.unitsNeeded - summary.currentMonthlyUnits} more units than now`
+                    : "You can already achieve this!"}
                 </div>
               )}
             </div>
@@ -202,20 +201,20 @@ export default function PricingAnalysisPage() {
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-1">
           <TrendingUp size={20} className="text-jc-rose-gold" />
-          Ano Mangyayari Kung Taasan o Babaan ang Presyo?
+          What If You Change Prices?
         </h2>
         <p className="text-xs text-jc-rose-gold mb-4">
-          Simulated effect kung babaguhin mo ang average price ng lahat ng produkto:
+          Simulates how raising or lowering your average price affects profit per unit and break-even targets:
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-jc-blush text-left text-jc-rose-gold">
-                <th className="pb-2 pr-3 font-medium">Galaw</th>
-                <th className="pb-2 pr-3 font-medium">Bagong Presyo</th>
-                <th className="pb-2 pr-3 font-medium">Tubo bawat Piraso</th>
-                <th className="pb-2 pr-3 font-medium">Units para hindi lugi</th>
-                <th className="pb-2 pr-3 font-medium">Bawas sa Kailangan</th>
+                <th className="pb-2 pr-3 font-medium">Change</th>
+                <th className="pb-2 pr-3 font-medium">New Price</th>
+                <th className="pb-2 pr-3 font-medium">Profit / Unit</th>
+                <th className="pb-2 pr-3 font-medium">Units to Break Even</th>
+                <th className="pb-2 pr-3 font-medium">Difference</th>
               </tr>
             </thead>
             <tbody>
@@ -232,8 +231,8 @@ export default function PricingAnalysisPage() {
                   <td className="py-2 pr-3 font-mono">
                     {typeof p.unitsSaved === "number"
                       ? p.unitsSaved > 0
-                        ? `${p.unitsSaved} mas kakaunti`
-                        : `${Math.abs(p.unitsSaved)} pa`
+                        ? `${p.unitsSaved} fewer needed`
+                        : `${Math.abs(p.unitsSaved)} more needed`
                       : "—"}
                   </td>
                 </tr>
@@ -242,34 +241,34 @@ export default function PricingAnalysisPage() {
           </table>
         </div>
         <p className="mt-2 text-[10px] text-jc-rose-gold">
-          💡 Example: Kung magtaas ka ng 10%, kailangan mo lang ng mas kaunting units para hindi lugi — pero tiyaking kaya pa rin ng customers mo ang presyo.
+          Example: A 10% price increase means you need fewer units to break even — but make sure customers can still afford the new price.
         </p>
       </section>
 
-      {/* PRODUCT ANALYSIS — SIMPLIFIED */}
+      {/* PRODUCT ANALYSIS */}
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-1">
           <Package size={20} className="text-jc-rose-gold" />
-          Bawat Produkto — Presyo, Tubo, at Stock
+          Each Product — Price, Margin & Stock
         </h2>
         <p className="text-xs text-jc-rose-gold mb-4">
-          <span className="text-red-600">Pula</span> = lugi o mababa ang tubo &middot;
-          <span className="text-yellow-600"> Dilaw</span> = mababa ang margin &middot;
-          Berde = maganda ang margin
+          <span className="text-red-600">Red</span> = below break-even or very low margin &middot;
+          <span className="text-yellow-600">Yellow</span> = low margin &middot;
+          Green = healthy margin
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-jc-blush text-left text-jc-rose-gold whitespace-nowrap">
-                <th className="pb-2 pr-2 font-medium">Produkto</th>
+                <th className="pb-2 pr-2 font-medium">Product</th>
                 <th className="pb-2 pr-2 font-medium">Cost</th>
-                <th className="pb-2 pr-2 font-medium">Presyo</th>
-                <th className="pb-2 pr-2 font-medium">Tubo %</th>
-                <th className="pb-2 pr-2 font-medium">Benta/Buwan</th>
+                <th className="pb-2 pr-2 font-medium">Price</th>
+                <th className="pb-2 pr-2 font-medium">Margin %</th>
+                <th className="pb-2 pr-2 font-medium">Sold/Mo</th>
                 <th className="pb-2 pr-2 font-medium">Stock</th>
-                <th className="pb-2 pr-2 font-medium">Araw pa</th>
-                <th className="pb-2 pr-2 font-medium">Sug. Presyo</th>
-                <th className="pb-2 pr-2 font-medium">Competitive?</th>
+                <th className="pb-2 pr-2 font-medium">Days Left</th>
+                <th className="pb-2 pr-2 font-medium">Suggested</th>
+                <th className="pb-2 pr-2 font-medium">Market</th>
               </tr>
             </thead>
             <tbody>
@@ -295,7 +294,7 @@ export default function PricingAnalysisPage() {
                     {p.daysOfStock > 90 ? "90+" : p.daysOfStock}d
                   </td>
                   <td className="py-2 pr-2 font-mono">
-                    {p.isMarginLow ? <span className="text-amber-600">₱{p.suggestedPrice.toFixed(0)}</span> : "✓"}
+                    {p.isMarginLow ? <span className="text-amber-600 text-[10px] bg-amber-50 px-1 py-0.5 rounded">₱{p.suggestedPrice.toFixed(0)}</span> : "✓"}
                   </td>
                   <td className="py-2 pr-2">
                     <span className={`px-1.5 py-0.5 rounded text-[10px] ${
@@ -303,7 +302,7 @@ export default function PricingAnalysisPage() {
                       p.priceLevel === "high" ? "bg-yellow-100 text-yellow-700" :
                       "bg-red-100 text-red-700"
                     }`}>
-                      {p.priceLevel === "competitive" ? "Tama" : p.priceLevel === "high" ? "Mataas" : "Mababa"}
+                      {p.priceLevel === "competitive" ? "Good" : p.priceLevel === "high" ? "High" : "Low"}
                     </span>
                   </td>
                 </tr>
@@ -312,7 +311,7 @@ export default function PricingAnalysisPage() {
           </table>
         </div>
         {productAnalysis.length > 30 && (
-          <p className="mt-2 text-[10px] text-jc-rose-gold">+ {productAnalysis.length - 30} pang produkto</p>
+          <p className="mt-2 text-[10px] text-jc-rose-gold">+ {productAnalysis.length - 30} more products</p>
         )}
       </section>
 
@@ -321,7 +320,7 @@ export default function PricingAnalysisPage() {
         <section className="rounded-sm border border-jc-blush bg-white p-5">
           <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-3">
             <BarChart3 size={20} className="text-jc-rose-gold" />
-            Anong Kategorya ang Pinakamabenta?
+            Which Category Sells Best?
           </h2>
           <div className="space-y-2">
             {categorySummary.map((c) => (
@@ -330,7 +329,7 @@ export default function PricingAnalysisPage() {
                 <div className="flex-1 h-5 bg-jc-cream rounded-sm overflow-hidden">
                   <div
                     className="h-full bg-jc-rose-gold rounded-sm transition-all"
-                    style={{ width: `${c.share}%` }}
+                    style={{ width: `${Math.min(c.share, 100)}%` }}
                     title={`${c.share}% of revenue`}
                   />
                 </div>
@@ -344,11 +343,11 @@ export default function PricingAnalysisPage() {
         </section>
       )}
 
-      {/* RECOMMENDATIONS — PLAIN LANGUAGE */}
+      {/* RECOMMENDATIONS */}
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-3">
           <Lightbulb size={20} className="text-jc-rose-gold" />
-           Ano ang Gagawin? — Rekomendasyon para sa'yo
+          What You Should Do — Recommendations
         </h2>
         <div className="space-y-3">
           {recommendations.map((r, i) => (
@@ -367,36 +366,36 @@ export default function PricingAnalysisPage() {
           ))}
         </div>
         <div className="mt-4 p-3 bg-jc-cream rounded-sm text-xs text-jc-rose-gold leading-relaxed">
-          <strong>📍 Competitive Pricing Guide para sa Lapu-Lapu at Cebu:</strong><br />
-          Sa local cosmetics market, ang magandang presyo ay <strong>2x-3x ng cost</strong> ng produkto.
-          Halimbawa: kung ang cost ay ₱20, ibenta ng ₱40-₱60. Ito ay competitive pa rin sa mga
-          tindahan sa palengke, mall, at online. Mas mataas sa 3x ay pwedeng mahirapan kang magbenta
-          dahil maraming alternatibo ang customers.
+          <strong>Competitive Pricing Guide for Lapu-Lapu & Cebu:</strong><br />
+          In the local cosmetics market, a good selling price is <strong>2x-3x your cost</strong>.
+          For example: if a product costs ₱20, sell it for ₱40-₱60. This is competitive with stores
+          in the market, mall, and online. Going above 3x cost may make it harder to sell since
+          customers have many alternatives.
         </div>
       </section>
 
-      {/* PRODUCT PRICE TIPS */}
+      {/* PRODUCTS THAT NEED PRICE ADJUSTMENT */}
       {productAnalysis.filter((p) => p.isMarginLow).length > 0 && (
         <section className="rounded-sm border border-jc-blush bg-white p-5">
           <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-3">
             <AlertTriangle size={20} className="text-jc-rose-gold" />
-            Mga Produktong Pwedeng Taasan ang Presyo
+            Products That Could Use a Price Increase
           </h2>
           <div className="space-y-2">
             {productAnalysis.filter((p) => p.isMarginLow).slice(0, 10).map((p) => (
               <div key={p.id} className="flex flex-wrap items-start gap-2 rounded-sm bg-yellow-50 p-3 text-xs">
                 <span className="font-medium text-jc-anchor w-36 shrink-0">{p.productName}</span>
                 <span className="text-jc-anchor">
-                  Cost ₱{p.unitCost.toFixed(0)} → Ngayon ₱{p.sellingPrice.toFixed(0)} (tubo: {p.currentMargin.toFixed(0)}%)
+                  Cost ₱{p.unitCost.toFixed(0)} &rarr; Now ₱{p.sellingPrice.toFixed(0)} (margin: {p.currentMargin.toFixed(0)}%)
                 </span>
                 <span className="text-amber-700">
-                  → Kung ₱{p.suggestedPrice.toFixed(0)} = {45}% margin
+                  &rarr; At ₱{p.suggestedPrice.toFixed(0)} = 45% margin
                 </span>
               </div>
             ))}
           </div>
           {productAnalysis.filter((p) => p.isMarginLow).length > 10 && (
-            <p className="mt-2 text-[10px] text-jc-rose-gold">+ {productAnalysis.filter((p) => p.isMarginLow).length - 10} pa</p>
+            <p className="mt-2 text-[10px] text-jc-rose-gold">+ {productAnalysis.filter((p) => p.isMarginLow).length - 10} more</p>
           )}
         </section>
       )}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-helpers";
-import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, addMonths, format } from "date-fns";
 
 const MONTHS_OF_HISTORY = 6;
 const COMPETITIVE_MARGIN_MIN = 30;
@@ -9,12 +9,14 @@ const COMPETITIVE_MARGIN_TARGET = 45;
 
 function linreg(values: number[]): { slope: number; intercept: number; r2: number } {
   const n = values.length;
+  if (n < 2) return { slope: 0, intercept: values[0] || 0, r2: 0 };
   const x = values.map((_, i) => i);
   const sumX = x.reduce((a, b) => a + b, 0);
   const sumY = values.reduce((a, b) => a + b, 0);
   const sumXY = x.reduce((a, b, i) => a + b * values[i], 0);
   const sumX2 = x.reduce((a, b) => a + b * b, 0);
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const denom = n * sumX2 - sumX * sumX;
+  const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
   const intercept = (sumY - slope * sumX) / n;
   const yMean = sumY / n;
   const ssTot = values.reduce((a, v) => a + (v - yMean) ** 2, 0);
@@ -33,14 +35,12 @@ export async function GET() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // --- Monthly expenses ---
     const monthExpenses = await prisma.expense.aggregate({
       where: { date: { gte: monthStart, lte: monthEnd } },
       _sum: { amount: true },
     });
     const monthlyFixedCosts = Number(monthExpenses._sum.amount || 0);
 
-    // --- Current month sales ---
     const [currentOrders, variants] = await Promise.all([
       prisma.salesOrder.findMany({
         where: { createdAt: { gte: monthStart, lte: monthEnd } },
@@ -69,7 +69,7 @@ export async function GET() {
     const grossProfitThisMonth = totalMonthRevenue - totalMonthCost;
     const netProfitThisMonth = grossProfitThisMonth - monthlyFixedCosts;
 
-    // --- Sales trends (monthly history) ---
+    // Monthly sales history
     const monthlySales: { month: string; units: number; revenue: number; label: string }[] = [];
     for (let m = MONTHS_OF_HISTORY - 1; m >= 0; m--) {
       const d = subMonths(now, m);
@@ -101,13 +101,14 @@ export async function GET() {
     const revenueReg = linreg(revenueSeries);
 
     const predictedUnits = [];
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 2; i++) {
       const nextIdx = MONTHS_OF_HISTORY - 1 + i;
       const pu = Math.max(0, Math.round(unitReg.slope * nextIdx + unitReg.intercept));
       const pr = Math.max(0, Math.round(revenueReg.slope * nextIdx + revenueReg.intercept));
+      const nextDate = addMonths(now, i);
       predictedUnits.push({
-        month: format(subMonths(now, -i), "yyyy-MM"),
-        label: format(subMonths(now, -i), "MMM"),
+        month: format(nextDate, "yyyy-MM"),
+        label: format(nextDate, "MMM"),
         units: pu,
         revenue: pr,
       });
@@ -118,7 +119,7 @@ export async function GET() {
       ? Math.round(((unitSeries[unitSeries.length - 1] - unitSeries[0]) / unitSeries[0]) * 100)
       : 0;
 
-    // --- 30-day per-variant sales ---
+    // 30-day per-variant sales
     const salesData = await prisma.salesOrderItem.groupBy({
       by: ["variantId"],
       where: { salesOrder: { createdAt: { gte: thirtyDaysAgo } } },
@@ -126,16 +127,15 @@ export async function GET() {
     });
     const salesMap = new Map(salesData.map((s) => [s.variantId, s._sum.qty ?? 0]));
 
-    // --- Break-even at current avg ---
     const marginPerUnit = avgSellingPrice - avgUnitCost;
     const currentBEUnits = marginPerUnit > 0 ? Math.ceil(monthlyFixedCosts / marginPerUnit) : Infinity;
 
-    // --- Profit target scenarios (plain-language) ---
+    // Profit target scenarios
     const profitScenarios = [
       { label: "Break-even (₱0 profit)", targetProfit: 0 },
-      { label: "Small profit (+₱5,000)", targetProfit: 5000 },
-      { label: "Moderate profit (+₱10,000)", targetProfit: 10000 },
-      { label: "Good profit (+₱20,000)", targetProfit: 20000 },
+      { label: "+₱5,000 profit", targetProfit: 5000 },
+      { label: "+₱10,000 profit", targetProfit: 10000 },
+      { label: "+₱20,000 profit", targetProfit: 20000 },
     ].map((s) => {
       const neededRevenue = monthlyFixedCosts + s.targetProfit;
       const unitsNeeded = marginPerUnit > 0 ? Math.ceil(neededRevenue / marginPerUnit) : Infinity;
@@ -148,7 +148,7 @@ export async function GET() {
       };
     });
 
-    // --- Product-level analysis ---
+    // Product-level analysis
     const productAnalysis = variants.map((v) => {
       const sales30 = salesMap.get(v.id) ?? 0;
       const annualDemand = Math.max(1, Math.round(sales30 * 12));
@@ -159,9 +159,8 @@ export async function GET() {
 
       const orderCost = 50;
       const holdingRate = 0.25;
-      const eoq = Math.round(Math.sqrt((2 * annualDemand * orderCost) / (unitCost * holdingRate)));
+      const eoq = Math.round(Math.sqrt((2 * annualDemand * orderCost) / (Math.max(unitCost, 1) * holdingRate)));
 
-      const suggestedPrice40 = Math.round((unitCost / (1 - 0.40)) * 100) / 100;
       const suggestedPrice45 = Math.round((unitCost / (1 - 0.45)) * 100) / 100;
 
       const revenueShare = totalMonthUnits > 0 ? sales30 / totalMonthUnits : 0;
@@ -170,20 +169,10 @@ export async function GET() {
         ? Math.round(((productFixedCostShare + (unitCost * sales30)) / sales30) * 100) / 100
         : 0;
 
-      // Competitive price range for Cebu / Lapu-Lapu market
-      // Cosmetics typical markup: 2x-3x of cost (50-67% margin)
-      // Budget-friendly: 1.5x-2x cost (33-50% margin)
-      const competitiveMin = Math.round(unitCost * 1.8 * 100) / 100;   // 44% margin
-      const competitiveMax = Math.round(unitCost * 3.0 * 100) / 100;   // 67% margin
+      const competitiveMin = Math.round(unitCost * 1.8 * 100) / 100;
+      const competitiveMax = Math.round(unitCost * 3.0 * 100) / 100;
       const isCompetitivelyPriced = sellingPrice >= competitiveMin && sellingPrice <= competitiveMax;
       const priceLevel = sellingPrice < competitiveMin ? "low" : sellingPrice > competitiveMax ? "high" : "competitive";
-      const priceAdvice = sellingPrice < breakEvenPrice
-        ? "Mataas ang cost vs price — lugi ka dito. Itaas ang presyo o bawasan ang cost."
-        : currentMargin < 20
-          ? "Maliit ang tubo. Subukan taasan ng ₱5-10 o humanap ng mas murang supplier."
-          : currentMargin < 45
-            ? "Okay ang margin pero pwedeng taasan pa konti para mas kumita."
-            : "Maganda ang margin! Competitive pa rin sa Cebu market.";
 
       return {
         id: v.id,
@@ -207,11 +196,10 @@ export async function GET() {
         competitiveMax,
         isCompetitivelyPriced,
         priceLevel,
-        priceAdvice,
       };
     }).sort((a, b) => a.currentMargin - b.currentMargin);
 
-    // --- Price change simulator ---
+    // Price change simulator
     const priceChangeImpact = [];
     for (const pct of [-10, -5, 5, 10, 15, 20]) {
       const newAvgPrice = avgSellingPrice * (1 + pct / 100);
@@ -219,7 +207,7 @@ export async function GET() {
       const newUnitsToBE = newMarginPerUnit > 0 ? Math.ceil(monthlyFixedCosts / newMarginPerUnit) : Infinity;
       priceChangeImpact.push({
         change: `${pct > 0 ? "+" : ""}${pct}%`,
-        changeLabel: pct > 0 ? "Taasan" : "Bawasan",
+        changeLabel: pct > 0 ? "Increase" : "Decrease",
         newAvgPrice: Math.round(newAvgPrice * 100) / 100,
         newMarginPerUnit: Math.round(newMarginPerUnit * 100) / 100,
         newUnitsToBE: newUnitsToBE === Infinity ? "—" : newUnitsToBE,
@@ -227,7 +215,7 @@ export async function GET() {
       });
     }
 
-    // --- Category-level summary ---
+    // Category-level summary
     const catMap = new Map<string, { products: number; units: number; revenue: number; cost: number }>();
     for (const p of productAnalysis) {
       const c = catMap.get(p.category) || { products: 0, units: 0, revenue: 0, cost: 0 };
@@ -262,8 +250,6 @@ export async function GET() {
         isProfitable: netProfitThisMonth > 0,
         isBreakEvenUnit: totalMonthUnits >= currentBEUnits,
       },
-
-      // Sales Trend Prediction
       salesTrend: {
         history: monthlySales,
         prediction: predictedUnits,
@@ -272,23 +258,13 @@ export async function GET() {
         confidence: unitReg.r2 > 0.7 ? "high" : unitReg.r2 > 0.4 ? "medium" : "low",
         r2: Math.round(unitReg.r2 * 100) / 100,
       },
-
-      // Profit target scenarios
       profitScenarios,
-
-      // Product-level analysis
       productAnalysis,
       productCount: productAnalysis.length,
       lowMarginCount: productAnalysis.filter((p) => p.isMarginLow).length,
       belowBreakEvenCount: productAnalysis.filter((p) => p.isBelowBreakEven).length,
-
-      // Price change simulation
       priceChangeImpact,
-
-      // Category overview
       categorySummary,
-
-      // Top-level recommendations (plain Tagalog/English mix)
       recommendations: generateRecommendations({
         monthlyFixedCosts, avgUnitCost, avgSellingPrice, avgMargin, marginPerUnit,
         currentMonthlyUnits: totalMonthUnits, isProfitable: netProfitThisMonth > 0,
@@ -311,80 +287,74 @@ function generateRecommendations(
   products: {
     currentMargin: number; isBelowBreakEven: boolean; isMarginLow: boolean;
     productName: string; daysOfStock: number; sales30: number; eoq: number;
-    priceAdvice: string; unitCost: number; sellingPrice: number;
+    unitCost: number; sellingPrice: number;
   }[],
   profitScenarios: { label: string; targetProfit: number; unitsNeeded: number; neededSales: number; isAchievable: boolean }[],
 ) {
   const r: { icon: string; text: string; type: "tip" | "warning" | "danger" | "info" }[] = [];
 
-  // 1. Overall health
   if (s.isProfitable) {
     r.push({
-      icon: "🟢", type: "info",
-      text: `Maganda! Kumikita ka ng ₱${s.netProfit.toFixed(0)} ngayong buwan. Benta mo: ${s.currentMonthlyUnits} units vs kailangan lang na ${s.breakEvenUnits} units.`,
+      icon: "good", type: "info",
+      text: `You earned ₱${s.netProfit.toFixed(0)} this month. You sold ${s.currentMonthlyUnits} units — only ${s.breakEvenUnits} were needed to break even. Keep it up!`,
     });
   } else {
     const deficit = s.breakEvenUnits - s.currentMonthlyUnits;
     r.push({
-      icon: "🔴", type: "danger",
-      text: `Kailangan mo pa ng ${deficit} units para hindi lugi ngayong buwan. Ang gastos mo ay ₱${s.monthlyFixedCosts.toFixed(0)}/buwan — bawat unit na ibenta mo ay kumikita ng ₱${s.marginPerUnit.toFixed(2)}.`,
+      icon: "bad", type: "danger",
+      text: `You need ${deficit} more units this month to break even. Your monthly expenses are ₱${s.monthlyFixedCosts.toFixed(0)}. Each unit sold earns ₱${s.marginPerUnit.toFixed(2)} of gross profit.`,
     });
   }
 
-  // 2. Trend
   if (s.trendDirection === "up") {
     r.push({
-      icon: "📈", type: "info",
-      text: `Ang benta mo ay lumalaki ng ${s.growthRate}% compared sa nakaraang buwan. Tuloy-tuloy lang!`,
+      icon: "trending_up", type: "info",
+      text: `Sales are growing ${s.growthRate}% compared to earlier months. Keep up the momentum!`,
     });
   } else if (s.trendDirection === "down") {
     r.push({
-      icon: "📉", type: "warning",
-      text: `Bumababa ang benta mo. Subukan mag-promo, mag-bundle, o mag-post sa social media para maakit ang customers.`,
+      icon: "trending_down", type: "warning",
+      text: `Sales are declining. Consider running a promotion, bundling products, or posting on social media to attract customers.`,
     });
   }
 
-  // 3. Below break-even products
   const belowBE = products.filter((p) => p.isBelowBreakEven);
   if (belowBE.length > 0) {
     r.push({
-      icon: "⚠️", type: "danger",
-      text: `${belowBE.length} produkto ang lugi ang presyo: ${belowBE.slice(0, 4).map((p) => p.productName).join(", ")}. Kung pwedeng taasan ang presyo o kaya humanap ng mas murang supplier.`,
+      icon: "warning", type: "danger",
+      text: `${belowBE.length} product(s) are priced below their break-even point: ${belowBE.slice(0, 4).map((p) => p.productName).join(", ")}. Consider raising prices or finding a cheaper supplier.`,
     });
   }
 
-  // 4. Low margin
   const lowMargin = products.filter((p) => p.isMarginLow && !p.isBelowBreakEven);
   if (lowMargin.length > 0) {
     r.push({
-      icon: "🟡", type: "warning",
-      text: `${lowMargin.length} produkto ang maliit ang tubo (below 30%): ${lowMargin.slice(0, 4).map((p) => `${p.productName} (₱${p.unitCost.toFixed(0)} cost → ₱${p.sellingPrice.toFixed(0)} price)`).join(", ")}. Sa Cebu, pwede magtaas ng 10-20% dahil competitive pa rin sa mga brand sa mall.`,
+      icon: "low_margin", type: "warning",
+      text: `${lowMargin.length} product(s) have low margins (below 30%): ${lowMargin.slice(0, 4).map((p) => `${p.productName} (₱${p.unitCost.toFixed(0)} cost → ₱${p.sellingPrice.toFixed(0)} price)`).join(", ")}. A small price increase of 10-20% is still competitive in the local market.`,
     });
   }
 
-  // 5. Profit scenarios
   const achievable = profitScenarios.filter((p) => p.isAchievable && p.targetProfit > 0);
   if (achievable.length > 0) {
     const next = achievable[0];
+    const diff = next.unitsNeeded - s.currentMonthlyUnits;
     r.push({
-      icon: "💰", type: "tip",
-      text: `Target: ${next.label.replace(" (+", " = +")}. Kailangan mo lang ng ${next.unitsNeeded} units (₱${next.neededSales.toLocaleString()} na benta). Iyon ay ${next.unitsNeeded > s.currentMonthlyUnits ? `${next.unitsNeeded - s.currentMonthlyUnits} units pa kumpara ngayon` : "kaya mo na ngayon"}!`,
+      icon: "target", type: "tip",
+      text: `Target: ${next.label}. You need ${next.unitsNeeded} units (₱${next.neededSales.toLocaleString()} in sales). That is ${diff > 0 ? `${diff} more units than you sell now` : "achievable with your current volume"}!`,
     });
   }
 
-  // 6. Stock alerts
   const lowStock = products.filter((p) => p.daysOfStock < 15 && p.sales30 > 0);
   if (lowStock.length > 0) {
     r.push({
-      icon: "📦", type: "warning",
-      text: `Maubos na ang stock sa ${lowStock.length} produkto: ${lowStock.slice(0, 5).map((p) => `${p.productName} (${p.daysOfStock} araw na lang)`).join(", ")}. Mag-order nang ${lowStock[0]?.eoq || "sapat"} piraso para hindi maubusan.`,
+      icon: "stock", type: "warning",
+      text: `${lowStock.length} product(s) will run out in less than 15 days: ${lowStock.slice(0, 5).map((p) => `${p.productName} (${p.daysOfStock}d left)`).join(", ")}. Order ${lowStock[0]?.eoq || "enough"} pieces to avoid running out.`,
     });
   }
 
-  // 7. Pricing tip
   r.push({
-    icon: "💡", type: "tip",
-    text: `Sa Lapu-Lapu at Cebu, ang magandang presyo ay 2x-3x ng cost mo. Halimbawa: kung ang product cost ay ₱${products.length > 0 ? products[0].unitCost.toFixed(0) : "X"}, ibenta mo ng ₱${products.length > 0 ? Math.round(products[0].unitCost * 2.5).toFixed(0) : "Y"} - ₱${products.length > 0 ? Math.round(products[0].unitCost * 3).toFixed(0) : "Z"}. Competitive ito sa local brands at may magandang tubo ka pa.`,
+    icon: "tip", type: "tip",
+    text: `In the Lapu-Lapu and Cebu market, a good selling price is 2x-3x of your cost. For example, if a product costs ₱${products.length > 0 ? products[0].unitCost.toFixed(0) : "X"}, sell it for ₱${products.length > 0 ? Math.round(products[0].unitCost * 2.5).toFixed(0) : "Y"} - ₱${products.length > 0 ? Math.round(products[0].unitCost * 3).toFixed(0) : "Z"}. This is competitive with local brands while giving you good profit.`,
   });
 
   return r;
