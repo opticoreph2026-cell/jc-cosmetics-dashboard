@@ -364,10 +364,3 @@ model AccountPayable {
   @@map("accounts_payable")
 }
 
-model BusinessConfig {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-
-  @@map("business_config")
-}

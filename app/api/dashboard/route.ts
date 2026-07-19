@@ -40,8 +40,6 @@ export async function GET() {
     const todayEnd = endOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const monthStart = startOfMonth(now);
-    const todayEndDate = endOfDay(now);
-    const monthStartDate = startOfMonth(now);
     const monthEndDate = endOfDay(now);
 
     const todayOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, select: orderWithItemsSelect }), []);
@@ -55,8 +53,7 @@ export async function GET() {
     const arData = await safeQuery(() => prisma.accountReceivable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } });
     const apData = await safeQuery(() => prisma.accountPayable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } });
     const targetData = await safeQuery(() => prisma.salesTarget.findMany({ where: { year: now.getFullYear(), month: now.getMonth() + 1 } }), []);
-    const targetActuals = await safeQuery(() => prisma.salesOrder.groupBy({ by: ["channel"], where: { createdAt: { gte: monthStartDate, lte: monthEndDate } }, _sum: { total: true } }), []);
-    const configRows = await safeQuery(() => prisma.businessConfig.findMany({ where: { key: { in: ["monthlyRent", "monthlySalaries", "monthlyUtilities", "monthlyMarketing", "monthlyOther"] as string[] } } }), []);
+    const targetActuals = await safeQuery(() => prisma.salesOrder.groupBy({ by: ["channel"], where: { createdAt: { gte: monthStart, lte: monthEndDate } }, _sum: { total: true } }), []);
 
     const lowStockItems = lowStock.filter((v: any) => v.currentStockQty <= v.reorderPoint);
 
@@ -99,19 +96,13 @@ export async function GET() {
     const totalTarget = targetProgress.reduce((s: number, t: any) => s + t.target, 0);
     const totalActual = targetProgress.reduce((s: number, t: any) => s + t.actual, 0);
 
-    // Break-even calculation
-    const configMap = new Map(configRows.map((r: any) => [r.key, parseFloat(r.value) || 0]));
-    const monthlyFixedCosts =
-      (configMap.get("monthlyRent") ?? 0) +
-      (configMap.get("monthlySalaries") ?? 0) +
-      (configMap.get("monthlyUtilities") ?? 0) +
-      (configMap.get("monthlyMarketing") ?? 0) +
-      (configMap.get("monthlyOther") ?? 0);
-
+    // Break-even using actual monthly expenses from Expenses tab
+    const monthlyFixedCosts = monthExpenseTotal;
     const totalMonthUnits = monthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + i.qty, 0), 0);
     const totalMonthRevenue = monthOrders.reduce((s: number, o: any) => s + Number(o.total), 0);
     const avgUnitPrice = totalMonthUnits > 0 ? totalMonthRevenue / totalMonthUnits : 0;
-    const avgUnitCost = monthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + Number(i.unitCostAtSale) * i.qty, 0), 0) / (totalMonthUnits || 1);
+    const totalMonthCost = monthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + Number(i.unitCostAtSale) * i.qty, 0), 0);
+    const avgUnitCost = totalMonthUnits > 0 ? totalMonthCost / totalMonthUnits : 0;
     const avgMarginPerUnit = avgUnitPrice - avgUnitCost;
     const breakEvenUnits = avgMarginPerUnit > 0 ? Math.ceil(monthlyFixedCosts / avgMarginPerUnit) : 0;
 

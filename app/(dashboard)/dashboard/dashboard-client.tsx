@@ -138,7 +138,7 @@ export function DashboardClient() {
         <div className="rounded-sm border border-jc-blush bg-white p-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs uppercase tracking-wider text-jc-anchor/60">Break-Even Analysis</p>
-            <Link href="/settings" className="text-xs text-jc-rose-gold hover:underline">Adjust costs</Link>
+            <Link href="/expenses" className="text-xs text-jc-rose-gold hover:underline">Based on Expenses</Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-4">
             <div>
