@@ -160,8 +160,10 @@ model SalesOrder {
   customer      Customer?         @relation(fields: [customerId], references: [id])
   paymentMethod PaymentMethod     @map("payment_method")
   subtotal      Decimal           @db.Decimal(10, 2)
-  discount      Decimal           @default(0) @db.Decimal(10, 2)
-  total         Decimal           @db.Decimal(10, 2)
+  discount      Decimal     @default(0) @db.Decimal(10, 2)
+  total         Decimal     @db.Decimal(10, 2)
+  amountTendered Decimal?   @map("amount_tendered") @db.Decimal(10, 2)
+  changeGiven   Decimal?    @map("change_given") @db.Decimal(10, 2)
   notes         String?
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")

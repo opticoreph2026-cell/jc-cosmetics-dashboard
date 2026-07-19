@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
+  try { await requireAuth(); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
   try {
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
@@ -61,6 +63,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAuth();
     const body = await req.json();
     const { month, year, channel, target } = body;
 

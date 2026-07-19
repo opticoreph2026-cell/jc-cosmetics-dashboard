@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(req.url);
     const variantId = searchParams.get("variantId");
 
@@ -28,8 +30,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAuth();
     const body = await req.json();
-    const { items } = body; // { variantId: string; actualQty: number; notes?: string }[]
+    const { items } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Items array is required" }, { status: 400 });
@@ -62,12 +65,7 @@ export async function POST(req: NextRequest) {
       .map((i: any) =>
         prisma.productVariant.update({
           where: { id: i.variantId },
-          data: {
-            currentStockQty: i.actualQty,
-            ...(i.notes && i.notes.trim()
-              ? {}
-              : {}),
-          },
+          data: { currentStockQty: i.actualQty },
         })
       );
 

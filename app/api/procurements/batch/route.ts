@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-helpers";
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAuth();
     const body = await req.json();
     const { groups } = body;
 

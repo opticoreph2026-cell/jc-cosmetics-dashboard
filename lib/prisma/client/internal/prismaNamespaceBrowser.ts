@@ -182,6 +182,8 @@ export const SalesOrderScalarFieldEnum = {
   subtotal: 'subtotal',
   discount: 'discount',
   total: 'total',
+  amountTendered: 'amountTendered',
+  changeGiven: 'changeGiven',
   notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-helpers";
 
 export async function GET() {
   try {
+    await requireAuth();
     const variants = await prisma.productVariant.findMany({
       where: { isActive: true },
       include: {
