@@ -25,7 +25,7 @@ export default async function PricingAnalysisPage() {
   }
   if (!data) return <div className="p-6 text-jc-anchor">No data available.</div>;
 
-  const { summary, salesTrend, profitScenarios, productAnalysis, priceChangeImpact, categorySummary, recommendations } = data;
+  const { summary, salesTrend, profitScenarios, productAnalysis, priceChangeImpact, categorySummary, velocitySummary, recommendations } = data;
 
   const allMonths = [...salesTrend.history, ...salesTrend.prediction];
   const maxUnits = Math.max(...allMonths.map((m) => m.units), 1);
@@ -157,21 +157,40 @@ export default async function PricingAnalysisPage() {
         <p className="mt-2 text-[10px] text-jc-rose-gold">Example: A 10% price increase means fewer units needed to break even — but ensure customers can still afford the new price.</p>
       </section>
 
-      {/* Product Table */}
+      {/* Product Velocity — Fast Movers */}
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-1">
           <Package size={20} className="text-jc-rose-gold" />
-          Each Product — Price, Margin & Stock
+          Fast-Moving vs Slow-Moving Products
         </h2>
         <p className="text-xs text-jc-rose-gold mb-4">
-          <span className="text-red-600">Red</span> = below break-even &middot;
-          <span className="text-yellow-600">Yellow</span> = low margin &middot;
-          Green = healthy
+          Products sorted by most sold (last 30 days). Stock up on fast-movers, promote or phase out slow-movers.
         </p>
+        <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex items-center gap-2 rounded-sm bg-green-100 px-3 py-2 text-xs">
+            <span className="font-bold text-green-800">{velocitySummary.fast}</span>
+            <span className="text-green-700">Fast-moving (20+/mo)</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-sm bg-blue-100 px-3 py-2 text-xs">
+            <span className="font-bold text-blue-800">{velocitySummary.medium}</span>
+            <span className="text-blue-700">Medium (5-19/mo)</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-sm bg-yellow-100 px-3 py-2 text-xs">
+            <span className="font-bold text-yellow-800">{velocitySummary.slow}</span>
+            <span className="text-yellow-700">Slow (1-4/mo)</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-sm bg-gray-100 px-3 py-2 text-xs">
+            <span className="font-bold text-gray-800">{velocitySummary.none}</span>
+            <span className="text-gray-700">No sales</span>
+          </div>
+        </div>
+
+        {/* Product Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-jc-blush text-left text-jc-rose-gold whitespace-nowrap">
+                <th className="pb-2 pr-2 font-medium">Velocity</th>
                 <th className="pb-2 pr-2 font-medium">Product</th>
                 <th className="pb-2 pr-2 font-medium">Cost</th>
                 <th className="pb-2 pr-2 font-medium">Price</th>
@@ -184,8 +203,18 @@ export default async function PricingAnalysisPage() {
               </tr>
             </thead>
             <tbody>
-              {productAnalysis.slice(0, 30).map((p) => (
+              {productAnalysis.slice(0, 50).map((p) => (
                 <tr key={p.id} className={`border-b border-jc-blush/30 text-jc-anchor ${p.isBelowBreakEven ? "bg-red-50" : p.isMarginLow ? "bg-yellow-50" : p.currentMargin > 45 ? "bg-green-50" : ""}`}>
+                  <td className="py-2 pr-2">
+                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      p.velocity === "fast" ? "bg-green-100 text-green-700" :
+                      p.velocity === "medium" ? "bg-blue-100 text-blue-700" :
+                      p.velocity === "slow" ? "bg-yellow-100 text-yellow-700" :
+                      "bg-gray-100 text-gray-500"
+                    }`}>
+                      {p.velocity === "fast" ? "Fast" : p.velocity === "medium" ? "Med" : p.velocity === "slow" ? "Slow" : "None"}
+                    </span>
+                  </td>
                   <td className="py-2 pr-2 whitespace-nowrap">
                     <div className="font-medium">{p.productName}</div>
                     <div className="text-[10px] text-jc-rose-gold">{p.category}</div>
@@ -203,6 +232,7 @@ export default async function PricingAnalysisPage() {
             </tbody>
           </table>
         </div>
+        {productAnalysis.length > 50 && <p className="mt-2 text-[10px] text-jc-rose-gold">+ {productAnalysis.length - 50} more products</p>}
       </section>
 
       {/* Category Breakdown */}

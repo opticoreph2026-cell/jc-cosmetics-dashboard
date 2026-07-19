@@ -52,7 +52,9 @@ export type AnalysisData = {
     isBelowBreakEven: boolean; isMarginLow: boolean;
     competitiveMin: number; competitiveMax: number;
     isCompetitivelyPriced: boolean; priceLevel: string;
+    velocity: "fast" | "medium" | "slow" | "none";
   }[];
+  velocitySummary: Record<string, number>;
   priceChangeImpact: { change: string; newAvgPrice: number; newMarginPerUnit: number; newUnitsToBE: number | string; unitsSaved: number | string }[];
   categorySummary: { name: string; products: number; units: number; revenue: number; cost: number; margin: number; share: number }[];
   recommendations: { text: string; type: string }[];
@@ -182,6 +184,7 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     const breakEvenPrice = sales30 > 0
       ? Math.round((((monthlyFixedCosts * revenueShare) + (unitCost * sales30)) / sales30) * 100) / 100
       : 0;
+    const velocity: "fast" | "medium" | "slow" | "none" = sales30 >= 20 ? "fast" : sales30 >= 5 ? "medium" : sales30 > 0 ? "slow" : "none";
     const competitiveMin = Math.round(unitCost * 1.8 * 100) / 100;
     const competitiveMax = Math.round(unitCost * 3.0 * 100) / 100;
     const priceLevel = sellingPrice < competitiveMin ? "low" : sellingPrice > competitiveMax ? "high" : "competitive";
@@ -195,8 +198,9 @@ export async function computeAnalysis(): Promise<AnalysisData> {
       breakEvenPrice, isBelowBreakEven: breakEvenPrice > 0 && sellingPrice < breakEvenPrice,
       isMarginLow: currentMargin < COMPETITIVE_MARGIN_MIN,
       competitiveMin, competitiveMax, isCompetitivelyPriced: priceLevel === "competitive", priceLevel,
+      velocity,
     };
-  }).sort((a, b) => a.currentMargin - b.currentMargin);
+  }).sort((a, b) => b.sales30 - a.sales30);
 
   // -- Price impact --
   const priceChangeImpact = [];
@@ -227,6 +231,10 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     margin: c.revenue > 0 ? Math.round(((c.revenue - c.cost) / c.revenue) * 10000) / 100 : 0,
     share: totalMonthRevenue > 0 ? Math.round((c.revenue / totalMonthRevenue) * 10000) / 100 : 0,
   })).sort((a, b) => b.revenue - a.revenue);
+
+  // -- Velocity summary --
+  const velocitySummary: Record<string, number> = { fast: 0, medium: 0, slow: 0, none: 0 };
+  for (const p of productAnalysis) velocitySummary[p.velocity]++;
 
   // -- Recommendations --
   const recs: { text: string; type: string }[] = [];
@@ -265,6 +273,11 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     recs.push({ type: "warning", text: `${lowStock.length} product(s) will run out in <15 days: ${lowStock.slice(0, 4).map((p) => `${p.productName} (${p.daysOfStock}d left)`).join(", ")}. Use EOQ (${lowStock[0]?.eoq || "enough"} pcs) as reorder guide.` });
   }
 
+  if (velocitySummary.slow > 0 || velocitySummary.none > 0) {
+    const count = velocitySummary.slow + velocitySummary.none;
+    recs.push({ type: "tip", text: `${count} product(s) have low or zero sales. Consider bundling them with fast-movers, running a promo, or discontinuing slow items to free up cash.` });
+  }
+
   recs.push({ type: "tip", text: `In the Lapu-Lapu and Cebu market, a good price is 2x-3x your cost. E.g., if cost is P20, sell for P40-P60. This is competitive with local brands while giving you healthy profit.` });
 
   return {
@@ -287,6 +300,7 @@ export async function computeAnalysis(): Promise<AnalysisData> {
       confidence: unitReg.r2 > 0.7 ? "high" : unitReg.r2 > 0.4 ? "medium" : "low",
     },
     profitScenarios, productAnalysis, priceChangeImpact, categorySummary,
+    velocitySummary,
     recommendations: recs,
   };
 }
