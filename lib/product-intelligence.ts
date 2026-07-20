@@ -182,7 +182,9 @@ export async function predictReorder() {
     const safetyStock = Math.ceil(predictedDaily * PH_MARKET.safetyStockDays);
     const orderUpTo = Math.ceil(predictedDaily * (leadTime + 30));
     const suggestedQty = Math.max(1, orderUpTo - stock + safetyStock);
-    const orderBeforeDate = subDays(now, daysUntilStockout - leadTime);
+    const orderBeforeDate = daysUntilStockout <= leadTime
+      ? new Date()
+      : subDays(now, daysUntilStockout - leadTime);
 
     let urgency: ReorderPrediction["urgency"];
     let reasoning: string;
@@ -258,7 +260,10 @@ export async function analyzeAllProducts() {
     }),
   ]);
 
-  const monthlyFixed = Number(expenses._sum.amount || 0);
+  const rawMonthlyFixed = Number(expenses._sum.amount || 0);
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthlyFixed = Math.round(rawMonthlyFixed * (daysInMonth / Math.max(dayOfMonth, 1)));
 
   const sales30 = await prisma.salesOrderItem.groupBy({
     by: ["variantId"],
@@ -295,6 +300,21 @@ export async function analyzeAllProducts() {
 
   const insights: ProductInsight[] = [];
 
+  // Pre-compute ABC classification (single pass)
+  const sortedByRev90 = [...variants].sort((a, b) => {
+    const revA = (salesMap90.get(a.id) ?? 0) * Number(a.sellingPrice);
+    const revB = (salesMap90.get(b.id) ?? 0) * Number(b.sellingPrice);
+    return revB - revA;
+  });
+  const total90Rev = sortedByRev90.reduce((sum, p) => sum + (salesMap90.get(p.id) ?? 0) * Number(p.sellingPrice), 0);
+  let abcCum = 0;
+  const abcLookup = new Map<string, string>();
+  for (const p of sortedByRev90) {
+    abcCum += (salesMap90.get(p.id) ?? 0) * Number(p.sellingPrice);
+    const share = total90Rev > 0 ? abcCum / total90Rev : 0;
+    abcLookup.set(p.id, share <= 0.8 ? "A" : share <= 0.95 ? "B" : "C");
+  }
+
   for (const v of variants) {
     const s30 = salesMap30.get(v.id) ?? 0;
     const s90 = salesMap90.get(v.id) ?? 0;
@@ -308,23 +328,7 @@ export async function analyzeAllProducts() {
     const daysOfStock = s30 > 0 ? Math.round((stock / s30) * 30) : 999;
 
     const velocity: "fast" | "medium" | "slow" | "none" = s30 >= 20 ? "fast" : s30 >= 5 ? "medium" : s30 > 0 ? "slow" : "none";
-
-    const sortedByRevenue90 = [...variants].sort((a, b) => {
-      const revA = (salesMap90.get(a.id) ?? 0) * Number(a.sellingPrice);
-      const revB = (salesMap90.get(b.id) ?? 0) * Number(b.sellingPrice);
-      return revB - revA;
-    });
-    const total90Rev = sortedByRevenue90.reduce((sum, p) => sum + (salesMap90.get(p.id) ?? 0) * Number(p.sellingPrice), 0);
-    let abcCum = 0;
-    let abcClass = "C";
-    for (const p of sortedByRevenue90) {
-      abcCum += (salesMap90.get(p.id) ?? 0) * Number(p.sellingPrice);
-      const share = total90Rev > 0 ? abcCum / total90Rev : 0;
-      if (p.id === v.id) {
-        abcClass = share <= 0.8 ? "A" : share <= 0.95 ? "B" : "C";
-        break;
-      }
-    }
+    const abcClass = abcLookup.get(v.id) ?? "C";
 
     const markupRatio = cost > 0 ? price / cost : 0;
     let priceAction: ProductInsight["priceRecommendation"]["action"];
@@ -455,7 +459,11 @@ export async function evaluateNewProduct(params: {
     }),
   ]);
 
-  const monthlyFixed = Number(monthlyExpenses._sum.amount || 0);
+  const rawMonthlyFixed = Number(monthlyExpenses._sum.amount || 0);
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthlyFixed = Math.round(rawMonthlyFixed * (daysInMonth / Math.max(dayOfMonth, 1)));
   const productCount = comparableVariants.length + 1;
   const fixedAllocation = productCount > 0 ? monthlyFixed / productCount : monthlyFixed;
 
@@ -466,7 +474,7 @@ export async function evaluateNewProduct(params: {
   const avgMarginPerUnit = suggestedPrice - estimatedUnitCost;
   const unitsNeededPerMonth = avgMarginPerUnit > 0 ? Math.ceil(fixedAllocation / avgMarginPerUnit) : 99999;
   const unitsNeededPerDay = Math.ceil(unitsNeededPerMonth / 30);
-  const monthsToProfit = unitsNeededPerMonth > 0 ? Math.ceil(1 / (1 / unitsNeededPerMonth)) : 999;
+  const monthsToProfit = 1;
 
   const priceCompetitive = markupRatio >= PH_MARKET.competitiveMarkupRange[0] && markupRatio <= PH_MARKET.competitiveMarkupRange[1];
   const position = markupRatio >= 3 ? "premium" : markupRatio >= 2 ? "mid" : "budget";
@@ -592,7 +600,7 @@ export async function generatePromo(variantId?: string) {
 
   const todayUnits = todayOrders.reduce((s, o) => s + o.items.reduce((si, i) => si + i.qty, 0), 0);
   const monthUnits = monthOrders.reduce((s, o) => s + o.items.reduce((si, i) => si + i.qty, 0), 0);
-  const dailyTarget = Math.ceil((monthUnits / Math.max(new Date().getDate(), 1)) * 1.2);
+  const dailyTarget = Math.ceil((monthUnits / Math.max(now.getDate(), 1)) * 1.2);
 
   const sales30 = await prisma.salesOrderItem.groupBy({
     by: ["variantId"],

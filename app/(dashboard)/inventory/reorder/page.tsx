@@ -35,8 +35,6 @@ export default function ReorderPage() {
   const critical = data.filter((d) => d.currentStock === 0);
   const low = data.filter((d) => d.currentStock > 0 && d.daysRemaining < 14);
   const watch = data.filter((d) => d.daysRemaining >= 14);
-  const supFast = data.filter((d) => d.velocity === "fast").length;
-  const supSlow = data.filter((d) => d.velocity === "slow" || d.velocity === "none").length;
 
   const supplierGroups: Record<string, { supplier: { id: string; name: string }; items: Suggestion[] }> = {};
   for (const item of data) {

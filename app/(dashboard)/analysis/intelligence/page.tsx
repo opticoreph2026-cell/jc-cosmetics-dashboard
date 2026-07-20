@@ -1,5 +1,5 @@
 import { predictReorder, analyzeAllProducts, generatePromo } from "@/lib/product-intelligence";
-import { Brain, Package, TrendingUp, DollarSign, AlertTriangle, Lightbulb, ShoppingCart, Target, RefreshCw, Sparkles, ArrowUp, ArrowDown, Minus, Link2, FileWarning } from "lucide-react";
+import { Brain, Package, TrendingUp, DollarSign, AlertTriangle, Lightbulb, ShoppingCart, RefreshCw, Sparkles, ArrowUp, ArrowDown, Minus, Link2, FileWarning } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -332,7 +332,7 @@ export default async function IntelligencePage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <QuickTool href="/analysis/intelligence/feasibility" icon={<DollarSign size={18} />} label="New Product Feasibility" />
         <QuickTool href="/analysis/intelligence/promo" icon={<Sparkles size={18} />} label="AI Ad Generator" />
-        <QuickTool href="/analysis/pricing" icon={<BarChart3 icon={BarChart3} size={18} />} label="Pricing Analysis" />
+        <QuickTool href="/analysis/pricing" icon={BarChart3Icon} label="Pricing Analysis" />
         <QuickTool href="/inventory/reorder" icon={<RefreshCw size={18} />} label="Reorder" />
       </div>
     </div>
@@ -360,6 +360,4 @@ function QuickTool({ href, icon, label }: { href: string; icon: React.ReactNode;
   );
 }
 
-function BarChart3({ size }: { icon?: any; size: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" /><rect x="10" y="5" width="4" height="16" /><rect x="17" y="8" width="4" height="13" /></svg>;
-}
+const BarChart3Icon = <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9" /><rect x="10" y="5" width="4" height="16" /><rect x="17" y="8" width="4" height="13" /></svg>;

@@ -50,7 +50,7 @@ export function DashboardClient() {
         </div>
 
         <ProfitBreakdown grossProfit={p.profit} expenses={p.expenseTotal} trueProfit={p.trueProfit} />
-        <HealthScoreCard score={data.healthScore} breakdown={data.healthBreakdown} />
+        <HealthScoreCard score={data.healthScore ?? 0} breakdown={data.healthBreakdown ?? { profitScore: 0, marginScore: 0, growthScore: 0, coverageScore: 0 }} />
         <StatCard label="Units Sold" value={String(p.units)} />
         <StatCard label="Gross Margin" value={`${margin}%`} />
         <StatCard label="Net Margin" value={`${trueMargin}%`} />

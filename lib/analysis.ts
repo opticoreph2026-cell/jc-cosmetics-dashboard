@@ -75,7 +75,10 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     where: { date: { gte: monthStart, lte: monthEnd } },
     _sum: { amount: true },
   });
-  const monthlyFixedCosts = Number(monthExpenses._sum.amount || 0);
+  const rawMonthlyFixed = Number(monthExpenses._sum.amount || 0);
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthlyFixedCosts = Math.round(rawMonthlyFixed * (daysInMonth / Math.max(dayOfMonth, 1)));
 
   const [currentOrders, variants] = await Promise.all([
     prisma.salesOrder.findMany({
@@ -202,6 +205,7 @@ export async function computeAnalysis(): Promise<AnalysisData> {
   });
 
   // -- Product analysis --
+  const total30DayUnits = Array.from(salesMap.values()).reduce((a, b) => a + b, 0);
   const productAnalysis = variants.map((v) => {
     const sales30 = salesMap.get(v.id) ?? 0;
     const annualDemand = Math.max(1, Math.round(sales30 * 12));
@@ -211,7 +215,7 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     const daysOfStock = sales30 > 0 ? Math.round((v.currentStockQty / sales30) * 30) : 999;
     const eoq = Math.round(Math.sqrt((2 * annualDemand * 50) / (Math.max(unitCost, 1) * 0.25)));
     const suggestedPrice = Math.round((unitCost / 0.55) * 100) / 100;
-    const revenueShare = totalMonthUnits > 0 ? sales30 / totalMonthUnits : 0;
+    const revenueShare = total30DayUnits > 0 ? sales30 / total30DayUnits : 0;
     const annualRevenue = Math.round(sellingPrice * annualDemand * 100) / 100;
     const breakEvenPrice = sales30 > 0
       ? Math.round((((monthlyFixedCosts * revenueShare) + (unitCost * sales30)) / sales30) * 100) / 100
@@ -276,12 +280,13 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     c.products++; c.units += p.sales30; c.revenue += p.sellingPrice * p.sales30; c.cost += p.unitCost * p.sales30;
     catMap.set(p.category, c);
   }
+  const total30DayRevenue = Array.from(catMap.values()).reduce((s, c) => s + c.revenue, 0);
   const categorySummary = Array.from(catMap.entries()).map(([name, c]) => ({
     name, products: c.products, units: c.units,
     revenue: Math.round(c.revenue * 100) / 100,
     cost: Math.round(c.cost * 100) / 100,
     margin: c.revenue > 0 ? Math.round(((c.revenue - c.cost) / c.revenue) * 10000) / 100 : 0,
-    share: totalMonthRevenue > 0 ? Math.round((c.revenue / totalMonthRevenue) * 10000) / 100 : 0,
+    share: total30DayRevenue > 0 ? Math.round((c.revenue / total30DayRevenue) * 10000) / 100 : 0,
   })).sort((a, b) => b.revenue - a.revenue);
 
   // -- Velocity summary --

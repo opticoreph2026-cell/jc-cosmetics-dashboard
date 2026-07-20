@@ -97,7 +97,10 @@ export async function GET() {
     const totalActual = targetProgress.reduce((s: number, t: any) => s + t.actual, 0);
 
     // Break-even using actual monthly expenses from Expenses tab
-    const monthlyFixedCosts = monthExpenseTotal;
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const expenseProjectionFactor = daysInMonth / Math.max(dayOfMonth, 1);
+    const monthlyFixedCosts = Math.round(monthExpenseTotal * expenseProjectionFactor);
     const totalMonthUnits = monthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + i.qty, 0), 0);
     const totalMonthRevenue = monthOrders.reduce((s: number, o: any) => s + Number(o.total), 0);
     const avgUnitPrice = totalMonthUnits > 0 ? totalMonthRevenue / totalMonthUnits : 0;
@@ -151,8 +154,8 @@ export async function GET() {
         avgUnitCost: Math.round(avgUnitCost * 100) / 100,
         avgMarginPerUnit: Math.round(avgMarginPerUnit * 100) / 100,
         breakEvenUnitsPerMonth: breakEvenUnits,
-        breakEvenUnitsPerWeek: Math.ceil(breakEvenUnits / 4),
-        breakEvenUnitsPerDay: Math.ceil(breakEvenUnits / 30),
+        breakEvenUnitsPerWeek: Math.round(breakEvenUnits / 4.33),
+        breakEvenUnitsPerDay: Math.round(breakEvenUnits / 30),
         breakEvenRevenuePerMonth: Math.round(breakEvenUnits * avgUnitPrice * 100) / 100,
       },
     });
