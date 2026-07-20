@@ -34,6 +34,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
+    async authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard")
+        || nextUrl.pathname.startsWith("/inventory")
+        || nextUrl.pathname.startsWith("/quick-log")
+        || nextUrl.pathname.startsWith("/sales")
+        || nextUrl.pathname.startsWith("/customers")
+        || nextUrl.pathname.startsWith("/suppliers")
+        || nextUrl.pathname.startsWith("/procurement")
+        || nextUrl.pathname.startsWith("/ledger")
+        || nextUrl.pathname.startsWith("/categories")
+        || nextUrl.pathname.startsWith("/expenses")
+        || nextUrl.pathname.startsWith("/ar")
+        || nextUrl.pathname.startsWith("/ap")
+        || nextUrl.pathname.startsWith("/admin")
+        || nextUrl.pathname.startsWith("/analysis")
+        || nextUrl.pathname.startsWith("/settings");
+      if (isOnDashboard) return isLoggedIn;
+      if (isLoggedIn && nextUrl.pathname === "/login") return Response.redirect(new URL("/dashboard", nextUrl));
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) token.id = user.id;
       return token;

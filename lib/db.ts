@@ -10,7 +10,7 @@ function parseDatabaseUrl(url: string) {
     database: u.pathname.replace(/^\//, ""),
     user: decodeURIComponent(u.username),
     password: decodeURIComponent(u.password),
-    ssl: process.env.DB_SSL === "false" ? false : { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" },
+    ssl: { rejectUnauthorized: false },
   };
 }
 
