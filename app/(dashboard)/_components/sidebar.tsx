@@ -23,6 +23,7 @@ import {
   Receipt,
   Wallet,
   Settings,
+  Brain,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/quick-log", label: "Quick Log", icon: ShoppingCart },
   { href: "/sales", label: "Sales", icon: ShoppingCart },
   { href: "/sales/targets", label: "Targets", icon: Target },
+  { href: "/analysis/intelligence", label: "Intelligence Hub", icon: Brain },
   { href: "/analysis/pricing", label: "Pricing Analysis", icon: BarChart3 },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/suppliers", label: "Suppliers", icon: Truck },
