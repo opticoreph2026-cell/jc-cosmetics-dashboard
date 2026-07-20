@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { createAPSchema } from "@/lib/validations/schemas";
 
 export async function GET(req: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
@@ -13,20 +16,23 @@ export async function GET(req: NextRequest) {
       where,
       include: { supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
+      take: 200,
     });
 
-    return NextResponse.json(items);
+    return Response.json(items);
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAuth();
     const body = await req.json();
-    const item = await prisma.accountPayable.create({ data: body });
-    return NextResponse.json(item, { status: 201 });
+    const data = createAPSchema.parse(body);
+    const item = await prisma.accountPayable.create({ data });
+    return Response.json(item, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

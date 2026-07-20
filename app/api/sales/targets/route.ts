@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
-  try { await requireAuth(); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
   try {
+    await requireAuth();
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
     const month = parseInt(searchParams.get("month") || String(new Date().getMonth() + 1));
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!includeActuals) {
-      return NextResponse.json(targets);
+      return Response.json(targets);
     }
 
     const startDate = new Date(year, month - 1, 1);
@@ -55,9 +55,9 @@ export async function GET(req: NextRequest) {
       { target: 0, actual: 0, orders: 0 }
     );
 
-    return NextResponse.json({ channels: result, totals, year, month });
+    return Response.json({ channels: result, totals, year, month });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const { month, year, channel, target } = body;
 
     if (!month || !year || !channel || target == null) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return Response.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const upserted = await prisma.salesTarget.upsert({
@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
       update: { target },
     });
 
-    return NextResponse.json(upserted, { status: 201 });
+    return Response.json(upserted, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

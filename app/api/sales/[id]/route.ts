@@ -54,26 +54,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return Response.json({ error: "No fields to update" }, { status: 400 });
     }
 
-    const updated = await prisma.salesOrder.update({
-      where: { id },
-      data: updateData,
-      include: {
-        customer: { select: { id: true, name: true } },
-        items: {
-          include: { variant: { include: { product: { select: { name: true } } } } },
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.salesOrder.update({
+        where: { id },
+        data: updateData,
+        include: {
+          customer: { select: { id: true, name: true } },
+          items: {
+            include: { variant: { include: { product: { select: { name: true } } } } },
+          },
         },
-      },
-    });
+      });
 
-    if (existing.customerId && discount !== undefined) {
-      const discountDiff = Number(updateData.discount) - Number(existing.discount);
-      if (discountDiff !== 0) {
-        await prisma.customer.update({
-          where: { id: existing.customerId },
-          data: { totalLifetimeSpend: { decrement: discountDiff } },
-        });
+      if (existing.customerId && discount !== undefined) {
+        const discountDiff = Number(updateData.discount) - Number(existing.discount);
+        if (discountDiff !== 0) {
+          await tx.customer.update({
+            where: { id: existing.customerId },
+            data: { totalLifetimeSpend: { decrement: discountDiff } },
+          });
+        }
       }
-    }
+
+      return updatedOrder;
+    });
 
     return Response.json(updated);
   } catch (error) {

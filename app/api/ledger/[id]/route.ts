@@ -52,6 +52,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     });
     if (!entry) throw new ApiError(`Ledger entry not found: ${id}`, 404);
 
+    if (entry.variant.currentStockQty < entry.changeQty) {
+      throw new ApiError(
+        `Cannot delete: reversing ${entry.changeQty} units would make stock negative (current: ${entry.variant.currentStockQty})`,
+        400
+      );
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.productVariant.update({
         where: { id: entry.variantId },

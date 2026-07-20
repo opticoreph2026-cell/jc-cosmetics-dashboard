@@ -70,8 +70,8 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
     if (barcodeRef.current) barcodeRef.current.focus();
   }, []);
 
-  function handleBarcodeSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleBarcodeSubmit(e?: React.FormEvent | React.KeyboardEvent) {
+    if (e) e.preventDefault();
     const code = barcode.trim();
     if (!code) return;
 
@@ -169,22 +169,23 @@ export function QuickLogForm({ variants }: { variants: VariantItem[] }) {
           <label htmlFor="barcode" className="flex items-center gap-2 text-sm font-medium text-jc-anchor mb-2">
             <Barcode size={16} /> Scan Barcode
           </label>
-          <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+          <div className="flex gap-2">
             <input
               ref={barcodeRef}
               id="barcode"
               type="text"
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleBarcodeSubmit(e); } }}
               placeholder="Scan or type barcode..."
               autoComplete="off"
               className="block flex-1 rounded-sm border border-jc-blush px-4 py-3 text-base text-jc-anchor focus:border-jc-rose-gold focus:outline-none"
             />
-            <button type="submit"
+            <button type="button" onClick={handleBarcodeSubmit}
               className="rounded-sm bg-jc-rose-gold px-4 py-3 text-sm font-medium text-white hover:bg-jc-rose-gold/90">
               Add
             </button>
-          </form>
+          </div>
         </div>
 
         <div ref={searchRef} className="relative">

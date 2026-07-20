@@ -1,10 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 
 export async function POST() {
   try {
+    await requireAuth();
     const adminEmail = process.env.AUTH_ADMIN_EMAIL || "admin@jccosmetics.com";
-    const adminPassword = process.env.AUTH_ADMIN_PASSWORD || "admin123";
+    const adminPassword = process.env.AUTH_ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      return Response.json({ error: "AUTH_ADMIN_PASSWORD environment variable is not set" }, { status: 500 });
+    }
 
     const existing = await prisma.adminUser.findUnique({ where: { email: adminEmail } });
     if (!existing) {
@@ -29,6 +35,6 @@ export async function POST() {
 
     return Response.json({ success: true });
   } catch (error) {
-    return Response.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

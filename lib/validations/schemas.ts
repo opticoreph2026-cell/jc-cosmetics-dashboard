@@ -91,6 +91,26 @@ export const createSupplierProductSchema = z.object({
   isPreferred: z.boolean().optional(),
 });
 
+export const createARSchema = z.object({
+  customerId: z.string().min(1),
+  salesOrderId: z.string().optional(),
+  amount: z.number().min(0),
+  paidAmount: z.number().min(0).default(0),
+  dueDate: z.string().datetime().optional(),
+  status: z.string().default("UNPAID"),
+  notes: z.string().optional(),
+});
+
+export const createAPSchema = z.object({
+  supplierId: z.string().min(1),
+  procurementId: z.string().optional(),
+  amount: z.number().min(0),
+  paidAmount: z.number().min(0).default(0),
+  dueDate: z.string().datetime().optional(),
+  status: z.string().default("UNPAID"),
+  notes: z.string().optional(),
+});
+
 export const updateLedgerSchema = z.object({
   note: z.string().nullable().optional(),
   channel: z.enum(["WEB", "FACEBOOK_POST", "FACEBOOK_MARKETPLACE", "PHYSICAL"]).optional(),

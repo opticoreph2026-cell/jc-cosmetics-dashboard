@@ -18,7 +18,7 @@ export function DashboardClient() {
 
   if (!data) return <LoadingSkeleton />;
 
-  const p = data[period];
+  const p = (data[period] ?? { revenue: 0, profit: 0, trueProfit: 0, expenseTotal: 0, orders: 0, units: 0 });
   const margin = p.revenue > 0 ? ((p.profit / p.revenue) * 100).toFixed(1) : "0.0";
   const trueMargin = p.revenue > 0 ? ((p.trueProfit / p.revenue) * 100).toFixed(1) : "0.0";
 

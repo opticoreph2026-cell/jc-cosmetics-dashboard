@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 
 export async function GET() {
   try {
@@ -21,7 +20,7 @@ export async function GET() {
     const belowReorder = variants.filter((v) => v.currentStockQty <= v.reorderPoint);
 
     if (belowReorder.length === 0) {
-      return NextResponse.json([]);
+      return Response.json([]);
     }
 
     const thirtyDaysAgo = new Date();
@@ -66,8 +65,8 @@ export async function GET() {
         return aUrgency - bUrgency || b.sales30 - a.sales30;
       });
 
-    return NextResponse.json(suggestions);
+    return Response.json(suggestions);
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, ApiError } from "@/lib/auth-helpers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const { groups } = body;
 
     if (!Array.isArray(groups) || groups.length === 0) {
-      return NextResponse.json({ error: "Groups array is required" }, { status: 400 });
+      throw new ApiError("Groups array is required", 400);
     }
 
     const results = [];
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
       results.push(procurement);
     }
 
-    return NextResponse.json(results, { status: 201 });
+    return Response.json(results, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

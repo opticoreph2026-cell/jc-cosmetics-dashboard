@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { subMonths, startOfMonth, endOfMonth, format, addMonths, startOfDay, endOfDay, subDays } from "date-fns";
+import { subMonths, startOfMonth, endOfMonth, format, addMonths, startOfDay, endOfDay, subDays, addDays } from "date-fns";
 
 const PH_MARKET = {
   idealMarginPct: 45,
@@ -168,10 +168,10 @@ export async function predictReorder() {
     const rate60 = s60 / 30;
     const rate90 = s90 / 90;
 
-    const trend = rate90 > 0 ? (rate30 - rate90) / rate90 : 0;
+    const trend = rate60 > 0 ? (rate30 - rate60) / rate60 : 0;
     const seasonalFactor = rate60 > 0 && rate30 > 0 ? rate30 / rate60 : 1;
 
-    const predictedDaily = Math.max(0.1, rate30 * (1 + trend * 0.3) * seasonalFactor);
+    const predictedDaily = s30 > 0 ? Math.max(0.1, rate30 * (1 + trend * 0.3) * seasonalFactor) : 0;
     const predictedNext30 = Math.round(predictedDaily * 30);
 
     const stock = v.currentStockQty;
@@ -184,7 +184,7 @@ export async function predictReorder() {
     const suggestedQty = Math.max(1, orderUpTo - stock + safetyStock);
     const orderBeforeDate = daysUntilStockout <= leadTime
       ? new Date()
-      : subDays(now, daysUntilStockout - leadTime);
+      : addDays(now, daysUntilStockout - leadTime);
 
     let urgency: ReorderPrediction["urgency"];
     let reasoning: string;
@@ -474,7 +474,7 @@ export async function evaluateNewProduct(params: {
   const avgMarginPerUnit = suggestedPrice - estimatedUnitCost;
   const unitsNeededPerMonth = avgMarginPerUnit > 0 ? Math.ceil(fixedAllocation / avgMarginPerUnit) : 99999;
   const unitsNeededPerDay = Math.ceil(unitsNeededPerMonth / 30);
-  const monthsToProfit = 1;
+  const monthsToProfit = avgMarginPerUnit > 0 ? Math.ceil(fixedAllocation / (avgMarginPerUnit * Math.max(unitsNeededPerMonth, 1))) : 999;
 
   const priceCompetitive = markupRatio >= PH_MARKET.competitiveMarkupRange[0] && markupRatio <= PH_MARKET.competitiveMarkupRange[1];
   const position = markupRatio >= 3 ? "premium" : markupRatio >= 2 ? "mid" : "budget";
@@ -661,15 +661,3 @@ export async function generatePromo(variantId?: string) {
 
   return promos;
 }
-
-export type InventorySummary = {
-  totalProducts: number;
-  totalStockValue: number;
-  totalPotentialRevenue: number;
-  avgMarginPct: number;
-  slowMovers: number;
-  deadStock: number;
-  fastMovers: number;
-  stockoutRisk: number;
-  recommendations: { text: string; type: "info" | "warning" | "danger" | "tip" }[];
-};

@@ -49,7 +49,7 @@ export function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor focus:border-jc-rose-gold focus:outline-none focus:ring-1 focus:ring-jc-rose-gold"
-          placeholder="admin@jccosmetics.com"
+          placeholder="admin@email.com"
         />
       </div>
       <div>

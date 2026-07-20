@@ -16,7 +16,7 @@ export default async function InventoryPage() {
   const serialized = products.map((p) => ({
     id: p.id,
     name: p.name,
-    category: { name: p.category.name },
+    category: { name: p.category?.name ?? "Uncategorized" },
     variants: p.variants.map((v) => ({ currentStockQty: v.currentStockQty })),
   }));
 

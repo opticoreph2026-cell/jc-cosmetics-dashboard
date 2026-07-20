@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 
 export async function GET() {
   try {
+    await requireAuth();
     const variants = await prisma.productVariant.findMany({
       where: { isActive: true },
       include: { product: { select: { name: true, category: { select: { name: true } } } } },
@@ -26,7 +27,7 @@ export async function GET() {
       byCategory[category].units += qty;
     }
 
-    return NextResponse.json({
+    return Response.json({
       totalCost: Math.round(totalCost * 100) / 100,
       totalRetail: Math.round(totalRetail * 100) / 100,
       potentialProfit: Math.round((totalRetail - totalCost) * 100) / 100,
@@ -40,6 +41,6 @@ export async function GET() {
       })),
     });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

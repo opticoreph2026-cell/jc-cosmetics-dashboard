@@ -87,7 +87,7 @@ export default function ExpensesPage() {
           ))}
         </select>
         <select value={year} onChange={(e) => setYear(e.target.value)} className="rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor">
-          {[2024, 2025, 2026, 2027].map((y) => (<option key={y} value={y}>{y}</option>))}
+          {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map((y) => (<option key={y} value={y}>{y}</option>))}
         </select>
         <span className="text-sm text-jc-anchor/60">Total: <strong className="text-jc-anchor">₱{total.toLocaleString()}</strong></span>
       </div>

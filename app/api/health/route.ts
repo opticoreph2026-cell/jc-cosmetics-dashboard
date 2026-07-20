@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 
 export async function GET() {
   try {
+    await requireAuth();
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({ status: "ok", timestamp: new Date().toISOString() });
+    return Response.json({ status: "ok", timestamp: new Date().toISOString() });
   } catch (error) {
-    return NextResponse.json({ status: "error", error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

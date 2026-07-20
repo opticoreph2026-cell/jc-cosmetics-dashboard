@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, ApiError } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,9 +22,9 @@ export async function GET(req: NextRequest) {
       take: 50,
     });
 
-    return NextResponse.json(audits);
+    return Response.json(audits);
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const { items } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "Items array is required" }, { status: 400 });
+      throw new ApiError("Items array is required", 400);
     }
 
     const variantIds = items.map((i: any) => i.variantId);
@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
       await prisma.$transaction(updateOps);
     }
 
-    return NextResponse.json({ count: audits.length }, { status: 201 });
+    return Response.json({ count: audits.length }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

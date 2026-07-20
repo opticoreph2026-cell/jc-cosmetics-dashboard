@@ -3,6 +3,8 @@ import { startOfMonth, endOfMonth, subMonths, addMonths, format } from "date-fns
 
 const MONTHS_OF_HISTORY = 6;
 const COMPETITIVE_MARGIN_MIN = 30;
+const DEFAULT_ORDERING_COST = 50;
+const DEFAULT_HOLDING_COST_PCT = 0.25;
 
 function linreg(values: number[]) {
   const n = values.length;
@@ -153,10 +155,9 @@ export async function computeAnalysis(): Promise<AnalysisData> {
   const revenueReg = linreg(revenueSeries);
 
   // Moving average and MoM
-  const recent = unitSeries.filter(u => u > 0);
-  const movingAvg3 = recent.length >= 3
-    ? Math.round(recent.slice(-3).reduce((a, b) => a + b, 0) / 3)
-    : recent.length > 0 ? Math.round(recent.reduce((a, b) => a + b, 0) / recent.length) : 0;
+  const movingAvg3 = unitSeries.length >= 3
+    ? Math.round(unitSeries.slice(-3).reduce((a, b) => a + b, 0) / 3)
+    : unitSeries.length > 0 ? Math.round(unitSeries.reduce((a, b) => a + b, 0) / unitSeries.length) : 0;
   const momGrowth = monthlySales.length >= 2 && monthlySales[monthlySales.length - 2].units > 0
     ? Math.round(((monthlySales[monthlySales.length - 1].units - monthlySales[monthlySales.length - 2].units) / monthlySales[monthlySales.length - 2].units) * 100)
     : 0;
@@ -175,7 +176,7 @@ export async function computeAnalysis(): Promise<AnalysisData> {
   }
 
   const trendDirection = unitReg.slope > 1 ? "up" : unitReg.slope < -1 ? "down" : "stable";
-  const growthRate = unitSeries[unitSeries.length - 1] > 0 && unitSeries[0] > 0
+  const growthRate = unitSeries[0] > 0
     ? Math.round(((unitSeries[unitSeries.length - 1] - unitSeries[0]) / unitSeries[0]) * 100)
     : 0;
 
@@ -213,9 +214,9 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     const sellingPrice = Number(v.sellingPrice);
     const currentMargin = sellingPrice > 0 ? ((sellingPrice - unitCost) / sellingPrice) * 100 : 0;
     const daysOfStock = sales30 > 0 ? Math.round((v.currentStockQty / sales30) * 30) : 999;
-    const eoq = Math.round(Math.sqrt((2 * annualDemand * 50) / (Math.max(unitCost, 1) * 0.25)));
+    const eoq = Math.round(Math.sqrt((2 * annualDemand * DEFAULT_ORDERING_COST) / (Math.max(unitCost, 1) * DEFAULT_HOLDING_COST_PCT)));
     const suggestedPrice = Math.round((unitCost / 0.55) * 100) / 100;
-    const revenueShare = total30DayUnits > 0 ? sales30 / total30DayUnits : 0;
+    const revenueShare = total30DayUnits > 0 ? Math.max(sales30 / total30DayUnits, 0.01 / total30DayUnits) : 0.01;
     const annualRevenue = Math.round(sellingPrice * annualDemand * 100) / 100;
     const breakEvenPrice = sales30 > 0
       ? Math.round((((monthlyFixedCosts * revenueShare) + (unitCost * sales30)) / sales30) * 100) / 100

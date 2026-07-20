@@ -1,26 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, handleApiError } from "@/lib/auth-helpers";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await requireAuth();
     const { id } = await params;
     const body = await req.json();
     const { paidAmount } = body;
 
     const existing = await prisma.accountReceivable.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!existing) return Response.json({ error: "Not found" }, { status: 404 });
 
-    const newPaid = Number(existing.paidAmount) + Number(paidAmount);
     const total = Number(existing.amount);
-    const newStatus = newPaid >= total ? "PAID" : "PARTIAL";
+    const incrementAmount = Number(paidAmount);
 
     const updated = await prisma.accountReceivable.update({
       where: { id },
-      data: { paidAmount: newPaid, status: newStatus },
+      data: {
+        paidAmount: { increment: incrementAmount },
+        status: Number(existing.paidAmount) + incrementAmount >= total ? "PAID" : "PARTIAL",
+      },
     });
 
-    return NextResponse.json(updated);
+    return Response.json(updated);
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
