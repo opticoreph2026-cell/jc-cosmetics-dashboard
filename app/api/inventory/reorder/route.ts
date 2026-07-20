@@ -44,6 +44,7 @@ export async function GET() {
         const dailyRate = sales30 / 30;
         const daysRemaining = dailyRate > 0 ? Math.floor(v.currentStockQty / dailyRate) : 999;
         const suggestedQty = Math.max(Math.ceil(dailyRate * 45) - v.currentStockQty, 1);
+        const velocity = sales30 >= 20 ? "fast" : sales30 >= 5 ? "medium" : sales30 > 0 ? "slow" : "none";
         return {
           id: v.id,
           productName: v.product.name,
@@ -55,6 +56,7 @@ export async function GET() {
           dailyRate: Math.round(dailyRate * 100) / 100,
           daysRemaining,
           suggestedQty,
+          velocity,
           preferredSupplier: v.supplierProducts[0] ?? null,
         };
       })

@@ -42,6 +42,8 @@ export type AnalysisData = {
     trendDirection: string;
     growthRate: number;
     confidence: string;
+    movingAvg3: number;
+    momGrowth: number;
   };
   profitScenarios: { label: string; targetProfit: number; unitsNeeded: number; neededSales: number; isAchievable: boolean }[];
   productAnalysis: {
@@ -53,8 +55,10 @@ export type AnalysisData = {
     competitiveMin: number; competitiveMax: number;
     isCompetitivelyPriced: boolean; priceLevel: string;
     velocity: "fast" | "medium" | "slow" | "none";
+    annualRevenue: number; abcClass: string;
   }[];
   velocitySummary: Record<string, number>;
+  abcSummary: { a: number; b: number; c: number };
   priceChangeImpact: { change: string; newAvgPrice: number; newMarginPerUnit: number; newUnitsToBE: number | string; unitsSaved: number | string }[];
   categorySummary: { name: string; products: number; units: number; revenue: number; cost: number; margin: number; share: number }[];
   recommendations: { text: string; type: string }[];
@@ -104,39 +108,66 @@ export async function computeAnalysis(): Promise<AnalysisData> {
   const currentBEUnits = marginPerUnit > 0 ? Math.ceil(monthlyFixedCosts / marginPerUnit) : Infinity;
   const breakEvenUnits = currentBEUnits === Infinity ? 99999 : currentBEUnits;
 
-  // -- Monthly history --
-  const monthlySales: { month: string; units: number; revenue: number; label: string }[] = [];
+  // -- Monthly history (single aggregate query) --
+  const monthRanges: { label: string; month: string; start: Date; end: Date }[] = [];
   for (let m = MONTHS_OF_HISTORY - 1; m >= 0; m--) {
     const d = subMonths(now, m);
-    const sm = startOfMonth(d);
-    const em = endOfMonth(d);
-    const orders = await prisma.salesOrder.findMany({
-      where: { createdAt: { gte: sm, lte: em } },
-      include: { items: true },
+    monthRanges.push({
+      label: format(d, "MMM"),
+      month: format(d, "yyyy-MM"),
+      start: startOfMonth(d),
+      end: endOfMonth(d),
     });
-    let u = 0;
-    let r = 0;
-    for (const o of orders) {
-      for (const i of o.items) {
-        u += i.qty;
-        r += Number(i.unitPriceAtSale) * i.qty;
+  }
+  const monthlyOrders = await prisma.salesOrder.findMany({
+    where: {
+      createdAt: { gte: monthRanges[0].start },
+    },
+    select: { createdAt: true, items: { select: { qty: true, unitPriceAtSale: true, unitCostAtSale: true } } },
+  });
+  const monthlyBuckets = monthRanges.map((mr) => {
+    let units = 0;
+    let revenue = 0;
+    let cost = 0;
+    for (const o of monthlyOrders) {
+      const ot = new Date(o.createdAt).getTime();
+      if (ot >= mr.start.getTime() && ot <= mr.end.getTime()) {
+        for (const i of o.items) {
+          units += i.qty;
+          revenue += Number(i.unitPriceAtSale) * i.qty;
+          cost += Number(i.unitCostAtSale) * i.qty;
+        }
       }
     }
-    monthlySales.push({ month: format(d, "yyyy-MM"), units: u, revenue: Math.round(r * 100) / 100, label: format(d, "MMM") });
-  }
+    return { ...mr, units, revenue: Math.round(revenue * 100) / 100, cost };
+  });
+
+  const monthlySales = monthlyBuckets.map((b) => ({ month: b.month, units: b.units, revenue: b.revenue, label: b.label }));
 
   const unitSeries = monthlySales.map((m) => m.units);
+  const revenueSeries = monthlySales.map((m) => m.revenue);
   const unitReg = linreg(unitSeries);
+  const revenueReg = linreg(revenueSeries);
+
+  // Moving average and MoM
+  const recent = unitSeries.filter(u => u > 0);
+  const movingAvg3 = recent.length >= 3
+    ? Math.round(recent.slice(-3).reduce((a, b) => a + b, 0) / 3)
+    : recent.length > 0 ? Math.round(recent.reduce((a, b) => a + b, 0) / recent.length) : 0;
+  const momGrowth = monthlySales.length >= 2 && monthlySales[monthlySales.length - 2].units > 0
+    ? Math.round(((monthlySales[monthlySales.length - 1].units - monthlySales[monthlySales.length - 2].units) / monthlySales[monthlySales.length - 2].units) * 100)
+    : 0;
 
   const predictedUnits = [];
   for (let i = 1; i <= 2; i++) {
     const nextIdx = MONTHS_OF_HISTORY - 1 + i;
     const nextDate = addMonths(now, i);
+    const ml = Math.max(0, Math.round(unitReg.slope * nextIdx + unitReg.intercept));
     predictedUnits.push({
       month: format(nextDate, "yyyy-MM"),
       label: format(nextDate, "MMM"),
-      units: Math.max(0, Math.round(unitReg.slope * nextIdx + unitReg.intercept)),
-      revenue: 0,
+      units: ml,
+      revenue: Math.max(0, Math.round(revenueReg.slope * nextIdx + revenueReg.intercept)),
     });
   }
 
@@ -155,10 +186,10 @@ export async function computeAnalysis(): Promise<AnalysisData> {
 
   // -- Profit targets --
   const profitScenarios = [
-    { label: "Break-even (P0 profit)", targetProfit: 0 },
-    { label: "+P5,000 profit", targetProfit: 5000 },
-    { label: "+P10,000 profit", targetProfit: 10000 },
-    { label: "+P20,000 profit", targetProfit: 20000 },
+    { label: "Break-even (₱0 profit)", targetProfit: 0 },
+    { label: "+₱5,000 profit", targetProfit: 5000 },
+    { label: "+₱10,000 profit", targetProfit: 10000 },
+    { label: "+₱20,000 profit", targetProfit: 20000 },
   ].map((s) => {
     const neededRevenue = monthlyFixedCosts + s.targetProfit;
     const unitsNeeded = marginPerUnit > 0 ? Math.ceil(neededRevenue / marginPerUnit) : Infinity;
@@ -181,6 +212,7 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     const eoq = Math.round(Math.sqrt((2 * annualDemand * 50) / (Math.max(unitCost, 1) * 0.25)));
     const suggestedPrice = Math.round((unitCost / 0.55) * 100) / 100;
     const revenueShare = totalMonthUnits > 0 ? sales30 / totalMonthUnits : 0;
+    const annualRevenue = Math.round(sellingPrice * annualDemand * 100) / 100;
     const breakEvenPrice = sales30 > 0
       ? Math.round((((monthlyFixedCosts * revenueShare) + (unitCost * sales30)) / sales30) * 100) / 100
       : 0;
@@ -198,9 +230,29 @@ export async function computeAnalysis(): Promise<AnalysisData> {
       breakEvenPrice, isBelowBreakEven: breakEvenPrice > 0 && sellingPrice < breakEvenPrice,
       isMarginLow: currentMargin < COMPETITIVE_MARGIN_MIN,
       competitiveMin, competitiveMax, isCompetitivelyPriced: priceLevel === "competitive", priceLevel,
-      velocity,
+      velocity, annualRevenue, abcClass: "",
     };
   }).sort((a, b) => b.sales30 - a.sales30);
+
+  // -- ABC analysis (Pareto: A=top 80% revenue, B=next 15%, C=bottom 5%) --
+  const sortedByRevenue = [...productAnalysis].sort((a, b) => b.annualRevenue - a.annualRevenue);
+  const totalAnnualRevenue = sortedByRevenue.reduce((s, p) => s + p.annualRevenue, 0);
+  let cumulative = 0;
+  for (const p of sortedByRevenue) {
+    cumulative += p.annualRevenue;
+    const share = totalAnnualRevenue > 0 ? cumulative / totalAnnualRevenue : 0;
+    if (share <= 0.8) p.abcClass = "A";
+    else if (share <= 0.95) p.abcClass = "B";
+    else p.abcClass = "C";
+  }
+  // Re-apply abc class back to main array
+  const abcMap = new Map(sortedByRevenue.map((p) => [p.id, p.abcClass]));
+  for (const p of productAnalysis) p.abcClass = abcMap.get(p.id) || "C";
+  const abcSummary = {
+    a: sortedByRevenue.filter((p) => p.abcClass === "A").length,
+    b: sortedByRevenue.filter((p) => p.abcClass === "B").length,
+    c: sortedByRevenue.filter((p) => p.abcClass === "C").length,
+  };
 
   // -- Price impact --
   const priceChangeImpact = [];
@@ -240,45 +292,51 @@ export async function computeAnalysis(): Promise<AnalysisData> {
   const recs: { text: string; type: string }[] = [];
 
   if (netProfitThisMonth > 0) {
-    recs.push({ type: "info", text: `You earned P${netProfitThisMonth.toFixed(0)} this month. You sold ${totalMonthUnits} units — only ${breakEvenUnits} were needed to break even.` });
+    recs.push({ type: "info", text: `You earned ₱${netProfitThisMonth.toFixed(0)} this month. You sold ${totalMonthUnits} units — only ${breakEvenUnits} were needed to break even.` });
   } else if (marginPerUnit <= 0) {
-    recs.push({ type: "danger", text: `Your average selling price (P${avgSellingPrice.toFixed(0)}) does not cover your cost (P${avgUnitCost.toFixed(0)}). You are losing money per unit.` });
+    recs.push({ type: "danger", text: `Your average selling price (₱${avgSellingPrice.toFixed(0)}) does not cover your cost (₱${avgUnitCost.toFixed(0)}). You are losing money per unit.` });
   } else {
     const deficit = breakEvenUnits - totalMonthUnits;
-    recs.push({ type: "danger", text: `You need ${deficit} more units this month to break even. Monthly expenses: P${monthlyFixedCosts.toFixed(0)}. Each unit earns P${marginPerUnit.toFixed(2)} gross profit.` });
+    recs.push({ type: "danger", text: `You need ${deficit} more units this month to break even. Monthly expenses: ₱${monthlyFixedCosts.toFixed(0)}. Each unit earns ₱${marginPerUnit.toFixed(2)} gross profit.` });
   }
 
-  if (trendDirection === "up") recs.push({ type: "info", text: `Sales are growing ${growthRate}% compared to earlier months. Keep up the momentum!` });
-  else if (trendDirection === "down") recs.push({ type: "warning", text: `Sales are declining. Consider a promotion, bundle deals, or posting on social media.` });
+  if (trendDirection === "up") recs.push({ type: "info", text: `Sales are growing ${growthRate}% over 6 months. MoM growth: ${momGrowth > 0 ? "+" : ""}${momGrowth}%. Keep it up!` });
+  else if (trendDirection === "down") recs.push({ type: "warning", text: `Sales declining (${Math.abs(growthRate)}% over 6 months). Consider promotions, bundles, or social media campaigns.` });
+  else if (momGrowth > 0) recs.push({ type: "info", text: `Sales are stable overall but up ${momGrowth}% from last month. Last 3-month average: ${movingAvg3} units.` });
+  else recs.push({ type: "tip", text: `Sales have been stable. 3-month moving average: ${movingAvg3} units. Consider seasonal promotions to boost growth.` });
 
   const belowBE = productAnalysis.filter((p) => p.isBelowBreakEven);
   if (belowBE.length > 0) {
-    recs.push({ type: "danger", text: `${belowBE.length} product(s) priced below their break-even point: ${belowBE.slice(0, 4).map((p) => p.productName).join(", ")}. Consider raising prices or finding a cheaper supplier.` });
+    recs.push({ type: "danger", text: `${belowBE.length} product(s) priced below break-even: ${belowBE.slice(0, 4).map((p) => p.productName).join(", ")}. Raise prices or find cheaper suppliers.` });
   }
 
   const lowMargin = productAnalysis.filter((p) => p.isMarginLow && !p.isBelowBreakEven);
   if (lowMargin.length > 0) {
-    recs.push({ type: "warning", text: `${lowMargin.length} product(s) have low margins (below 30%): ${lowMargin.slice(0, 3).map((p) => `${p.productName} (cost P${p.unitCost.toFixed(0)}, sell P${p.sellingPrice.toFixed(0)})`).join(", ")}. A small price increase of 10-20% is still competitive locally.` });
+    recs.push({ type: "warning", text: `${lowMargin.length} product(s) with low margins (<30%): ${lowMargin.slice(0, 3).map((p) => `${p.productName} (cost ₱${p.unitCost.toFixed(0)}, sell ₱${p.sellingPrice.toFixed(0)})`).join(", ")}. A 10-20% increase is still competitive locally.` });
   }
 
   const achievable = profitScenarios.filter((p) => p.isAchievable && p.targetProfit > 0);
   if (achievable.length > 0) {
     const next = achievable[0];
     const diff = next.unitsNeeded - totalMonthUnits;
-    recs.push({ type: "tip", text: `Target: ${next.label}. You need ${next.unitsNeeded} units (P${next.neededSales.toLocaleString()} sales). That is ${diff > 0 ? `${diff} more units than now` : "achievable with your current volume"}!` });
+    recs.push({ type: "tip", text: `Target: ${next.label}. Need ${next.unitsNeeded} units (₱${next.neededSales.toLocaleString()} sales). ${diff > 0 ? `${diff} more units than now` : "Already achievable!"}` });
   }
 
   const lowStock = productAnalysis.filter((p) => p.daysOfStock < 15 && p.sales30 > 0);
   if (lowStock.length > 0) {
-    recs.push({ type: "warning", text: `${lowStock.length} product(s) will run out in <15 days: ${lowStock.slice(0, 4).map((p) => `${p.productName} (${p.daysOfStock}d left)`).join(", ")}. Use EOQ (${lowStock[0]?.eoq || "enough"} pcs) as reorder guide.` });
+    recs.push({ type: "warning", text: `${lowStock.length} product(s) running out (<15 days): ${lowStock.slice(0, 4).map((p) => `${p.productName} (${p.daysOfStock}d left)`).join(", ")}. Use EOQ (${lowStock[0]?.eoq || "enough"} pcs) as reorder guide.` });
   }
 
   if (velocitySummary.slow > 0 || velocitySummary.none > 0) {
     const count = velocitySummary.slow + velocitySummary.none;
-    recs.push({ type: "tip", text: `${count} product(s) have low or zero sales. Consider bundling them with fast-movers, running a promo, or discontinuing slow items to free up cash.` });
+    recs.push({ type: "tip", text: `${count} product(s) have low/zero sales. Bundle with fast-movers, run promos, or discontinue to free up ₱${Math.round(productAnalysis.filter(p => p.velocity === "slow" || p.velocity === "none").reduce((s, p) => s + p.unitCost * p.currentStock, 0)).toLocaleString()} in tied-up capital.` });
   }
 
-  recs.push({ type: "tip", text: `In the Lapu-Lapu and Cebu market, a good price is 2x-3x your cost. E.g., if cost is P20, sell for P40-P60. This is competitive with local brands while giving you healthy profit.` });
+  if (abcSummary.c > 0) {
+    recs.push({ type: "tip", text: `${abcSummary.c} product(s) are "C" items (bottom 5% revenue). These contribute little — consider clearing stock via discounts to free up shelf space and cash.` });
+  }
+
+  recs.push({ type: "tip", text: `In Lapu-Lapu & Cebu, price at 2x-3x cost. E.g., cost ₱20 → sell ₱40-₱60. Competitive with local brands with healthy profit.` });
 
   return {
     summary: {
@@ -296,11 +354,11 @@ export async function computeAnalysis(): Promise<AnalysisData> {
     },
     salesTrend: {
       history: monthlySales, prediction: predictedUnits,
-      trendDirection, growthRate,
-      confidence: unitReg.r2 > 0.7 ? "high" : unitReg.r2 > 0.4 ? "medium" : "low",
+      trendDirection, growthRate, confidence: unitReg.r2 > 0.7 ? "high" : unitReg.r2 > 0.4 ? "medium" : "low",
+      movingAvg3, momGrowth,
     },
     profitScenarios, productAnalysis, priceChangeImpact, categorySummary,
-    velocitySummary,
+    velocitySummary, abcSummary,
     recommendations: recs,
   };
 }

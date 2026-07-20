@@ -110,6 +110,26 @@ export async function GET() {
       return { ...p, expenseTotal, trueProfit: Number((p.profit - expenseTotal).toFixed(2)) };
     }
 
+    const monthProfit = month.profit;
+    const monthExp = monthExpenseTotal;
+    const monthRevenue = month.revenue;
+    const monthUnits = month.units;
+    const isProfitable = monthProfit > monthExp;
+    const marginPct = monthRevenue > 0 ? (monthProfit / monthRevenue) * 100 : 0;
+
+    const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const prevMonthEnd = endOfDay(new Date(now.getFullYear(), now.getMonth(), 0));
+    const prevMonthOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: prevMonthStart, lte: prevMonthEnd } }, select: orderWithItemsSelect }), []);
+    const prevMonthUnits = prevMonthOrders.reduce((s: number, o: any) => s + o.items.reduce((si: number, i: any) => si + i.qty, 0), 0);
+    const momGrowth = prevMonthUnits > 0 ? ((monthUnits - prevMonthUnits) / prevMonthUnits) * 100 : 0;
+
+    // Health score: 0-100, higher = healthier
+    const profitScore = isProfitable ? 40 : monthProfit > 0 ? 20 : 0;
+    const marginScore = Math.min(20, Math.max(0, (marginPct / 60) * 20));
+    const growthScore = Math.min(20, Math.max(0, (1 + momGrowth / 100) / 2 * 20));
+    const coverageScore = breakEvenUnits > 0 ? Math.min(20, (totalMonthUnits / breakEvenUnits) * 20) : 0;
+    const healthScore = Math.round(profitScore + marginScore + growthScore + coverageScore);
+
     return json({
       today: addTrueProfit(today, todayExpenseTotal),
       week: addTrueProfit(week, weekExpenseTotal),
@@ -123,6 +143,8 @@ export async function GET() {
       targetProgress,
       totalTarget,
       totalActual,
+      healthScore,
+      healthBreakdown: { profitScore, marginScore: Math.round(marginScore), growthScore: Math.round(growthScore), coverageScore: Math.round(coverageScore) },
       breakeven: {
         monthlyFixedCosts,
         avgUnitPrice: Math.round(avgUnitPrice * 100) / 100,

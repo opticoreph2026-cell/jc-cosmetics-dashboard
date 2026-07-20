@@ -50,6 +50,7 @@ export function DashboardClient() {
         </div>
 
         <ProfitBreakdown grossProfit={p.profit} expenses={p.expenseTotal} trueProfit={p.trueProfit} />
+        <HealthScoreCard score={data.healthScore} breakdown={data.healthBreakdown} />
         <StatCard label="Units Sold" value={String(p.units)} />
         <StatCard label="Gross Margin" value={`${margin}%`} />
         <StatCard label="Net Margin" value={`${trueMargin}%`} />
@@ -217,6 +218,22 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-sm border border-jc-blush bg-white p-5">
       <p className="text-xs uppercase tracking-wider text-jc-anchor/60">{label}</p>
       <p className="mt-1 font-display text-2xl text-jc-anchor">{value}</p>
+    </div>
+  );
+}
+
+function HealthScoreCard({ score, breakdown }: { score: number; breakdown: { profitScore: number; marginScore: number; growthScore: number; coverageScore: number } }) {
+  const color = score >= 70 ? "text-green-700 border-green-300 bg-green-50" : score >= 40 ? "text-amber-700 border-amber-300 bg-amber-50" : "text-red-700 border-red-300 bg-red-50";
+  return (
+    <div className={`rounded-sm border p-5 ${color}`}>
+      <p className="text-xs uppercase tracking-wider">Business Health</p>
+      <p className="mt-1 font-display text-3xl">{score}/100</p>
+      <div className="mt-1 flex gap-2 text-[10px]">
+        <span>Profit {breakdown.profitScore}</span>
+        <span>Margin {breakdown.marginScore}</span>
+        <span>Growth {breakdown.growthScore}</span>
+        <span>Coverage {breakdown.coverageScore}</span>
+      </div>
     </div>
   );
 }

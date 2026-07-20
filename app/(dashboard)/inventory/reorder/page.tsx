@@ -16,6 +16,7 @@ interface Suggestion {
   dailyRate: number;
   daysRemaining: number;
   suggestedQty: number;
+  velocity: string;
   preferredSupplier: { id: string; name: string; unitCost: string } | null;
 }
 
@@ -34,6 +35,8 @@ export default function ReorderPage() {
   const critical = data.filter((d) => d.currentStock === 0);
   const low = data.filter((d) => d.currentStock > 0 && d.daysRemaining < 14);
   const watch = data.filter((d) => d.daysRemaining >= 14);
+  const supFast = data.filter((d) => d.velocity === "fast").length;
+  const supSlow = data.filter((d) => d.velocity === "slow" || d.velocity === "none").length;
 
   const supplierGroups: Record<string, { supplier: { id: string; name: string }; items: Suggestion[] }> = {};
   for (const item of data) {
@@ -124,6 +127,7 @@ export default function ReorderPage() {
                 <th className="px-4 py-3 text-right">Reorder At</th>
                 <th className="px-4 py-3 text-right">30d Sales</th>
                 <th className="px-4 py-3 text-right">Days Left</th>
+                <th className="px-4 py-3 text-center">Velocity</th>
                 <th className="px-4 py-3 text-right">Suggested Qty</th>
                 <th className="px-4 py-3">Supplier</th>
                 <th className="px-4 py-3"></th>
@@ -141,6 +145,16 @@ export default function ReorderPage() {
                   <td className="px-4 py-3 text-right text-jc-anchor">{item.sales30}</td>
                   <td className={`px-4 py-3 text-right font-medium ${item.daysRemaining === 999 ? "text-jc-anchor/40" : item.daysRemaining < 7 ? "text-red-600" : "text-jc-anchor"}`}>
                     {item.daysRemaining === 999 ? "—" : item.daysRemaining}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      item.velocity === "fast" ? "bg-green-100 text-green-700" :
+                      item.velocity === "medium" ? "bg-blue-100 text-blue-700" :
+                      item.velocity === "slow" ? "bg-yellow-100 text-yellow-700" :
+                      "bg-gray-100 text-gray-500"
+                    }`}>
+                      {item.velocity === "fast" ? "Fast" : item.velocity === "medium" ? "Med" : item.velocity === "slow" ? "Slow" : "None"}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-jc-anchor">{item.suggestedQty}</td>
                   <td className="px-4 py-3 text-jc-anchor/70">

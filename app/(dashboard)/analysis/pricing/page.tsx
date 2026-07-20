@@ -25,7 +25,7 @@ export default async function PricingAnalysisPage() {
   }
   if (!data) return <div className="p-6 text-jc-anchor">No data available.</div>;
 
-  const { summary, salesTrend, profitScenarios, productAnalysis, priceChangeImpact, categorySummary, velocitySummary, recommendations } = data;
+  const { summary, salesTrend, profitScenarios, productAnalysis, priceChangeImpact, categorySummary, velocitySummary, abcSummary, recommendations } = data;
 
   const allMonths = [...salesTrend.history, ...salesTrend.prediction];
   const maxUnits = Math.max(...allMonths.map((m) => m.units), 1);
@@ -44,9 +44,9 @@ export default async function PricingAnalysisPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card icon={<DollarSign size={20} />} label="This Month's Profit" value={`P${summary.netProfit.toFixed(0)}`} sub={`Expenses: P${summary.monthlyFixedCosts.toFixed(0)}/mo`} good={summary.isProfitable} />
+        <Card icon={<DollarSign size={20} />} label="This Month's Profit" value={`₱${summary.netProfit.toFixed(0)}`} sub={`Expenses: ₱${summary.monthlyFixedCosts.toFixed(0)}/mo`} good={summary.isProfitable} />
         <Card icon={<ShoppingCart size={20} />} label="Units Sold" value={summary.currentMonthlyUnits.toLocaleString()} sub={`Need ${summary.breakEvenUnits.toLocaleString()} to break even`} good={summary.isBreakEvenUnit} />
-        <Card icon={<TrendingUp size={20} />} label="Avg Selling Price" value={`P${summary.avgSellingPrice.toFixed(0)}`} sub={`Cost: P${summary.avgUnitCost.toFixed(0)}`} good={summary.avgMargin > 30} />
+        <Card icon={<TrendingUp size={20} />} label="Avg Selling Price" value={`₱${summary.avgSellingPrice.toFixed(0)}`} sub={`Cost: ₱${summary.avgUnitCost.toFixed(0)}`} good={summary.avgMargin > 30} />
         <Card icon={<BarChart3 size={20} />} label="Average Margin" value={`${summary.avgMargin.toFixed(1)}%`} sub={`Healthy: 30-60%`} good={summary.avgMargin > 30} />
       </div>
 
@@ -95,6 +95,14 @@ export default async function PricingAnalysisPage() {
         </div>
       </section>
 
+      {/* Statistical KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MiniCard label="MoM Growth" value={`${salesTrend.momGrowth > 0 ? "+" : ""}${salesTrend.momGrowth}%`} good={salesTrend.momGrowth > 0} />
+        <MiniCard label="3-Mo Avg" value={`${salesTrend.movingAvg3} units`} good={salesTrend.movingAvg3 > salesTrend.history[salesTrend.history.length - 1]?.units} />
+        <MiniCard label="Confidence" value={salesTrend.confidence === "high" ? "High" : salesTrend.confidence === "medium" ? "Medium" : "Low"} good={salesTrend.confidence === "high"} />
+        <MiniCard label="ABC Items" value={`A:${abcSummary.a} B:${abcSummary.b} C:${abcSummary.c}`} good={abcSummary.a > 0} />
+      </div>
+
       {/* Profit Targets */}
       <section className="rounded-sm border border-jc-blush bg-white p-5">
         <h2 className="font-display text-lg text-jc-anchor flex items-center gap-2 mb-1">
@@ -111,7 +119,7 @@ export default async function PricingAnalysisPage() {
                 <span className="text-xs font-normal text-jc-rose-gold ml-1">units</span>
               </div>
               <div className="text-xs text-jc-rose-gold mt-1">
-                {sc.isAchievable ? `P${sc.neededSales.toLocaleString()} in sales` : "Hard to reach right now"}
+                {sc.isAchievable ? `₱${sc.neededSales.toLocaleString()} in sales` : "Hard to reach right now"}
               </div>
               {sc.isAchievable && sc.targetProfit > 0 && (
                 <div className="mt-2 text-[10px] text-green-700">
@@ -145,8 +153,8 @@ export default async function PricingAnalysisPage() {
               {priceChangeImpact.map((p) => (
                 <tr key={p.change} className="border-b border-jc-blush/30 text-jc-anchor">
                   <td className={`py-2 pr-3 font-medium font-mono ${p.change.startsWith("+") ? "text-green-700" : "text-red-700"}`}>{p.change}</td>
-                  <td className="py-2 pr-3 font-mono">P{p.newAvgPrice.toFixed(2)}</td>
-                  <td className={`py-2 pr-3 font-mono ${p.newMarginPerUnit > 0 ? "text-green-600" : "text-red-600"}`}>P{p.newMarginPerUnit.toFixed(2)}</td>
+                  <td className="py-2 pr-3 font-mono">₱{p.newAvgPrice.toFixed(2)}</td>
+                  <td className={`py-2 pr-3 font-mono ${p.newMarginPerUnit > 0 ? "text-green-600" : "text-red-600"}`}>₱{p.newMarginPerUnit.toFixed(2)}</td>
                   <td className="py-2 pr-3 font-mono">{p.newUnitsToBE}</td>
                   <td className="py-2 pr-3 font-mono">{typeof p.unitsSaved === "number" ? (p.unitsSaved > 0 ? `${p.unitsSaved} fewer` : `${Math.abs(p.unitsSaved)} more`) : "—"}</td>
                 </tr>
@@ -200,6 +208,7 @@ export default async function PricingAnalysisPage() {
                 <th className="pb-2 pr-2 font-medium">Days Left</th>
                 <th className="pb-2 pr-2 font-medium">Suggested</th>
                 <th className="pb-2 pr-2 font-medium">Market</th>
+                <th className="pb-2 pr-2 font-medium">ABC</th>
               </tr>
             </thead>
             <tbody>
@@ -219,14 +228,15 @@ export default async function PricingAnalysisPage() {
                     <div className="font-medium">{p.productName}</div>
                     <div className="text-[10px] text-jc-rose-gold">{p.name}</div>
                   </td>
-                  <td className="py-2 pr-2 font-mono">P{p.unitCost.toFixed(0)}</td>
-                  <td className="py-2 pr-2 font-mono">P{p.sellingPrice.toFixed(0)}</td>
+                  <td className="py-2 pr-2 font-mono">₱{p.unitCost.toFixed(0)}</td>
+                  <td className="py-2 pr-2 font-mono">₱{p.sellingPrice.toFixed(0)}</td>
                   <td className={`py-2 pr-2 font-mono ${p.currentMargin < 20 ? "text-red-600" : p.currentMargin < 30 ? "text-yellow-600" : "text-green-600"}`}>{p.currentMargin.toFixed(0)}%</td>
                   <td className="py-2 pr-2 font-mono">{p.sales30}</td>
                   <td className="py-2 pr-2 font-mono">{p.currentStock}</td>
                   <td className={`py-2 pr-2 font-mono ${p.daysOfStock < 15 ? "text-red-600 font-medium" : ""}`}>{p.daysOfStock > 90 ? "90+" : p.daysOfStock}d</td>
-                  <td className="py-2 pr-2 font-mono">{p.isMarginLow ? <span className="text-amber-600 text-[10px] bg-amber-50 px-1 py-0.5 rounded">P{p.suggestedPrice.toFixed(0)}</span> : "\u2713"}</td>
+                  <td className="py-2 pr-2 font-mono">{p.isMarginLow ? <span className="text-amber-600 text-[10px] bg-amber-50 px-1 py-0.5 rounded">₱{p.suggestedPrice.toFixed(0)}</span> : "\u2713"}</td>
                   <td className="py-2 pr-2"><span className={`px-1.5 py-0.5 rounded text-[10px] ${p.priceLevel === "competitive" ? "bg-green-100 text-green-700" : p.priceLevel === "high" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{p.priceLevel === "competitive" ? "Good" : p.priceLevel === "high" ? "High" : "Low"}</span></td>
+                  <td className="py-2 pr-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${p.abcClass === "A" ? "bg-green-100 text-green-700" : p.abcClass === "B" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>{p.abcClass}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -249,7 +259,7 @@ export default async function PricingAnalysisPage() {
                 <div className="flex-1 h-5 bg-jc-cream rounded-sm overflow-hidden">
                   <div className="h-full bg-jc-rose-gold rounded-sm transition-all" style={{ width: `${Math.min(c.share, 100)}%` }} />
                 </div>
-                <span className="w-20 text-right font-mono text-jc-anchor">P{c.revenue.toFixed(0)}</span>
+                <span className="w-20 text-right font-mono text-jc-anchor">₱{c.revenue.toFixed(0)}</span>
                 <span className={`w-12 text-right font-mono ${c.margin > 30 ? "text-green-600" : c.margin > 15 ? "text-yellow-600" : "text-red-600"}`}>{c.margin.toFixed(0)}%</span>
               </div>
             ))}
@@ -273,7 +283,7 @@ export default async function PricingAnalysisPage() {
         <div className="mt-4 p-3 bg-jc-cream rounded-sm text-xs text-jc-rose-gold leading-relaxed">
           <strong>Competitive Pricing Guide (Lapu-Lapu & Cebu):</strong><br />
           In the local cosmetics market, a good selling price is <strong>2x-3x your cost</strong>.
-          For example: if a product costs P20, sell it for P40-P60. This is competitive with stores
+          For example: if a product costs ₱20, sell it for ₱40-₱60. This is competitive with stores
           in the market, mall, and online.
         </div>
       </section>
@@ -289,13 +299,22 @@ export default async function PricingAnalysisPage() {
             {productAnalysis.filter((p) => p.isMarginLow).slice(0, 10).map((p) => (
               <div key={p.id} className="flex flex-wrap items-start gap-2 rounded-sm bg-yellow-50 p-3 text-xs">
                 <span className="font-medium text-jc-anchor w-36 shrink-0">{p.productName}</span>
-                <span className="text-jc-anchor">Cost P{p.unitCost.toFixed(0)} &rarr; Now P{p.sellingPrice.toFixed(0)} (margin: {p.currentMargin.toFixed(0)}%)</span>
-                <span className="text-amber-700">&rarr; At P{p.suggestedPrice.toFixed(0)} = 45% margin</span>
+                <span className="text-jc-anchor">Cost ₱{p.unitCost.toFixed(0)} &rarr; Now ₱{p.sellingPrice.toFixed(0)} (margin: {p.currentMargin.toFixed(0)}%)</span>
+                <span className="text-amber-700">&rarr; At ₱{p.suggestedPrice.toFixed(0)} = 45% margin</span>
               </div>
             ))}
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function MiniCard({ label, value, good }: { label: string; value: string; good: boolean }) {
+  return (
+    <div className={`rounded-sm border p-4 ${good ? "border-green-200 bg-green-50" : "border-gray-200 bg-gray-50"}`}>
+      <span className="text-[10px] uppercase tracking-wide text-jc-rose-gold">{label}</span>
+      <div className={`mt-1 text-lg font-display ${good ? "text-green-700" : "text-jc-anchor"}`}>{value}</div>
     </div>
   );
 }
