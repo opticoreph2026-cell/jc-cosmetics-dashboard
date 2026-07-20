@@ -14,7 +14,12 @@ export const authConfig = {
         || nextUrl.pathname.startsWith("/procurement")
         || nextUrl.pathname.startsWith("/ledger")
         || nextUrl.pathname.startsWith("/categories")
-        || nextUrl.pathname.startsWith("/admin");
+        || nextUrl.pathname.startsWith("/expenses")
+        || nextUrl.pathname.startsWith("/ar")
+        || nextUrl.pathname.startsWith("/ap")
+        || nextUrl.pathname.startsWith("/admin")
+        || nextUrl.pathname.startsWith("/analysis")
+        || nextUrl.pathname.startsWith("/settings");
       if (isOnDashboard) return isLoggedIn;
       if (isLoggedIn && nextUrl.pathname === "/login") return Response.redirect(new URL("/dashboard", nextUrl));
       return true;
