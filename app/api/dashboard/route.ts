@@ -44,7 +44,7 @@ export async function GET() {
 
     const todayOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, select: orderWithItemsSelect }), []);
     const weekOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: weekStart, lte: now } }, select: orderWithItemsSelect }), []);
-    const monthOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: monthStart, lte: now } }, select: orderWithItemsSelect }), []);
+    const monthOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: monthStart, lte: now } }, select: orderWithItemsSelect, orderBy: { createdAt: "asc" } }), []);
     const lowStock = await safeQuery(() => prisma.productVariant.findMany({ where: { isActive: true }, select: { id: true, name: true, sku: true, currentStockQty: true, reorderPoint: true, product: { select: { name: true } } }, take: 200 }), []);
     const recentOrders = await safeQuery(() => prisma.salesOrder.findMany({ take: 5, orderBy: { createdAt: "desc" }, select: orderSelect }), []);
     const todayExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }), { _sum: { amount: null } });
@@ -70,19 +70,23 @@ export async function GET() {
     const month = { ...calcUnitsAndProfit(mapItems(monthOrders)), revenue: Number(monthOrders.reduce((s: number, o: any) => s + Number(o.total), 0).toFixed(2)), orders: monthOrders.length };
 
     const dailyMap: Record<string, { revenue: number; profit: number; units: number }> = {};
+    const dayOrder: string[] = [];
     for (const o of monthOrders) {
       const day = format(new Date(o.createdAt), "MMM d");
-      if (!dailyMap[day]) dailyMap[day] = { revenue: 0, profit: 0, units: 0 };
+      if (!dailyMap[day]) {
+        dailyMap[day] = { revenue: 0, profit: 0, units: 0 };
+        dayOrder.push(day);
+      }
       dailyMap[day].revenue += Number(o.total);
       for (const i of o.items) {
         dailyMap[day].units += i.qty;
         dailyMap[day].profit += (Number(i.unitPriceAtSale) - Number(i.unitCostAtSale)) * i.qty;
       }
     }
-    for (const k of Object.keys(dailyMap)) {
-      dailyMap[k].profit = Number(dailyMap[k].profit.toFixed(2));
-    }
-    const daily = Object.entries(dailyMap).map(([date, d]) => ({ date, revenue: Number(d.revenue.toFixed(2)), profit: Number(d.profit.toFixed(2)), units: d.units }));
+    const daily = dayOrder.map((date) => {
+      const d = dailyMap[date];
+      return { date, revenue: Number(d.revenue.toFixed(2)), profit: Number(d.profit.toFixed(2)), units: d.units };
+    });
 
     const todayExpenseTotal = Number(todayExpenses._sum.amount || 0);
     const weekExpenseTotal = Number(weekExpenses._sum.amount || 0);
