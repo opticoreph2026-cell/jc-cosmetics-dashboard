@@ -200,7 +200,6 @@ export function Sidebar() {
                               : "text-jc-anchor/70 hover:text-jc-anchor"
                           }`}
                         >
-                          <span className="h-1 w-1 rounded-full bg-current opacity-40" />
                           {child.label}
                         </Link>
                       );
