@@ -30,7 +30,7 @@ export default function SalesTargetsPage() {
     setLoading(true);
     fetch(`/api/sales/targets?year=${year}&month=${month}`)
       .then((r) => r.json())
-      .then(setData)
+      .then((d) => { if (d && Array.isArray(d.channels)) setData(d); })
       .finally(() => setLoading(false));
   }, [year, month]);
 
@@ -47,7 +47,7 @@ export default function SalesTargetsPage() {
       toast.success("Target saved");
       setEditing(null);
       const r = await fetch(`/api/sales/targets?year=${year}&month=${month}`).then((r) => r.json());
-      setData(r);
+      if (r && Array.isArray(r.channels)) setData(r);
     } catch (e: any) {
       toast.error(e.message);
     }

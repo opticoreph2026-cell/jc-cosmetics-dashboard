@@ -10,10 +10,17 @@ export function DashboardClient() {
   const [data, setData] = useState<any>(null);
   const [period, setPeriod] = useState<"today" | "week" | "month">("today");
 
-  useEffect(() => {
+  function fetchData() {
     fetch("/api/dashboard")
       .then((r) => r.json())
       .then(setData);
+  }
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 60000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") fetchData(); });
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", fetchData); };
   }, []);
 
   if (!data) return <LoadingSkeleton />;

@@ -27,17 +27,19 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     ]);
 
     if (orderCount > 0 || procurementCount > 0) {
-      const reasons: string[] = [];
-      if (orderCount > 0) reasons.push(`${orderCount} sales order item(s)`);
-      if (procurementCount > 0) reasons.push(`${procurementCount} procurement item(s)`);
-      throw new ApiError(
-        `Cannot delete variant: ${reasons.join(", ")} reference it. Remove these first.`,
-        400
-      );
+      await prisma.productVariant.update({
+        where: { id },
+        data: { isActive: false },
+      });
+      return Response.json({
+        success: true,
+        phasedOut: true,
+        message: `Variant deactivated (${orderCount} sale(s), ${procurementCount} procurement(s) on record). Historical data preserved.`,
+      });
     }
 
     await prisma.productVariant.delete({ where: { id } });
-    return Response.json({ success: true });
+    return Response.json({ success: true, phasedOut: false });
   } catch (error) {
     return handleApiError(error);
   }

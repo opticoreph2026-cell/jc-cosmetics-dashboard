@@ -62,10 +62,10 @@ export async function GET(req: NextRequest) {
     }
 
     return json({
-      summary: { totalRevenue: totalRevenue.toFixed(2), totalOrders, avgOrderValue: avgOrderValue.toFixed(2), totalMargin: totalMargin.toFixed(2), totalCost: totalCost.toFixed(2) },
-      byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue: revenue.toFixed(2) })),
-      byCategory: Object.entries(byCategory).map(([id, revenue]) => ({ category: catMap[id] || id, revenue: revenue.toFixed(2) })),
-      daily: Object.entries(daily).map(([date, revenue]) => ({ date, revenue: revenue.toFixed(2) })),
+      summary: { totalRevenue, totalOrders, avgOrderValue, totalMargin, totalCost },
+      byChannel: Object.entries(byChannel).map(([channel, revenue]) => ({ channel, revenue })),
+      byCategory: Object.entries(byCategory).map(([id, revenue]) => ({ category: catMap[id] || id, revenue })),
+      daily: Object.entries(daily).map(([date, revenue]) => ({ date, revenue })),
     });
   } catch (error) {
     return handleApiError(error);

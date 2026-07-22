@@ -99,13 +99,10 @@ export async function POST(req: NextRequest) {
       }
 
       if (customerId) {
-        const customer = await tx.customer.findUnique({ where: { id: customerId } });
-        if (customer) {
-          await tx.customer.update({
-            where: { id: customerId },
-            data: { totalLifetimeSpend: { increment: total } },
-          });
-        }
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { totalLifetimeSpend: { increment: total } },
+        });
       }
 
       return order;
