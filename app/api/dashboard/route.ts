@@ -42,18 +42,30 @@ export async function GET() {
     const monthStart = startOfMonth(now);
     const monthEndDate = endOfDay(now);
 
-    const todayOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, select: orderWithItemsSelect }), []);
-    const weekOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: weekStart, lte: now } }, select: orderWithItemsSelect }), []);
-    const monthOrders = await safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: monthStart, lte: now } }, select: orderWithItemsSelect, orderBy: { createdAt: "asc" } }), []);
-    const lowStock = await safeQuery(() => prisma.productVariant.findMany({ where: { isActive: true }, select: { id: true, name: true, sku: true, currentStockQty: true, reorderPoint: true, product: { select: { name: true } } }, take: 200 }), []);
-    const recentOrders = await safeQuery(() => prisma.salesOrder.findMany({ take: 5, orderBy: { createdAt: "desc" }, select: orderSelect }), []);
-    const todayExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }), { _sum: { amount: null } });
-    const weekExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: weekStart, lte: now } }, _sum: { amount: true } }), { _sum: { amount: null } });
-    const monthExpenses = await safeQuery(() => prisma.expense.aggregate({ where: { date: { gte: monthStart, lte: now } }, _sum: { amount: true } }), { _sum: { amount: null } });
-    const arData = await safeQuery(() => prisma.accountReceivable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } });
-    const apData = await safeQuery(() => prisma.accountPayable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } });
-    const targetData = await safeQuery(() => prisma.salesTarget.findMany({ where: { year: now.getFullYear(), month: now.getMonth() + 1 } }), []);
-    const targetActuals = await safeQuery(() => prisma.salesOrder.groupBy({ by: ["channel"], where: { createdAt: { gte: monthStart, lte: monthEndDate } }, _sum: { total: true } }), []);
+    const [allOrders, lowStock, recentOrders, allExpenses, arData, apData, targetData, targetActuals] = await Promise.all([
+      safeQuery(() => prisma.salesOrder.findMany({ where: { createdAt: { gte: monthStart, lte: now } }, select: orderWithItemsSelect, orderBy: { createdAt: "asc" } }), []),
+      safeQuery(() => prisma.productVariant.findMany({ where: { isActive: true }, select: { id: true, name: true, sku: true, currentStockQty: true, reorderPoint: true, product: { select: { name: true } } }, take: 200 }), []),
+      safeQuery(() => prisma.salesOrder.findMany({ take: 5, orderBy: { createdAt: "desc" }, select: orderSelect }), []),
+      safeQuery(() => prisma.expense.findMany({ where: { date: { gte: monthStart, lte: now } } }), []),
+      safeQuery(() => prisma.accountReceivable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } }),
+      safeQuery(() => prisma.accountPayable.aggregate({ where: { status: { in: ["UNPAID", "PARTIAL"] } }, _sum: { amount: true, paidAmount: true } }), { _sum: { amount: null, paidAmount: null } }),
+      safeQuery(() => prisma.salesTarget.findMany({ where: { year: now.getFullYear(), month: now.getMonth() + 1 } }), []),
+      safeQuery(() => prisma.salesOrder.groupBy({ by: ["channel"], where: { createdAt: { gte: monthStart, lte: monthEndDate } }, _sum: { total: true } }), []),
+    ]);
+
+    const todayOrders = allOrders.filter((o: any) => o.createdAt >= todayStart && o.createdAt <= todayEnd);
+    const weekOrders = allOrders.filter((o: any) => o.createdAt >= weekStart);
+    const monthOrders = allOrders;
+
+    const todayExpenseTotal = allExpenses.filter((e: any) => {
+      const d = new Date(e.date);
+      return d >= todayStart && d <= todayEnd;
+    }).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const weekExpenseTotal = allExpenses.filter((e: any) => {
+      const d = new Date(e.date);
+      return d >= weekStart;
+    }).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const monthExpenseTotal = allExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
 
     const lowStockItems = lowStock.filter((v: any) => v.currentStockQty <= v.reorderPoint);
 
@@ -87,10 +99,6 @@ export async function GET() {
       const d = dailyMap[date];
       return { date, revenue: Number(d.revenue.toFixed(2)), profit: Number(d.profit.toFixed(2)), units: d.units };
     });
-
-    const todayExpenseTotal = Number(todayExpenses._sum.amount || 0);
-    const weekExpenseTotal = Number(weekExpenses._sum.amount || 0);
-    const monthExpenseTotal = Number(monthExpenses._sum.amount || 0);
 
     const arOutstanding = Math.max(0, Number(arData._sum.amount || 0) - Number(arData._sum.paidAmount || 0));
     const apOutstanding = Math.max(0, Number(apData._sum.amount || 0) - Number(apData._sum.paidAmount || 0));

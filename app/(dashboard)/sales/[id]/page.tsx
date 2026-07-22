@@ -9,7 +9,13 @@ import { Edit3, Save, X } from "lucide-react";
 export default function SalesDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<{
+    id: string; orderNumber: string; channel: string; paymentMethod: string;
+    subtotal: number; discount: number; total: number; amountTendered: number | null;
+    changeGiven: number | null; notes: string | null; createdAt: string;
+    customer: { id: string; name: string; phone: string | null } | null;
+    items: { id: string; variant: { product: { name: string }; name: string }; unitPriceAtSale: number; subtotal: number; qty: number }[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editDiscount, setEditDiscount] = useState("");
@@ -36,6 +42,7 @@ export default function SalesDetailPage() {
   async function handleSave() {
     setSaving(true);
     try {
+      if (!order) return;
       const payload: any = { discount: parseFloat(editDiscount) || 0, notes: editNotes };
       if (editPayment && editPayment !== order.paymentMethod) payload.paymentMethod = editPayment;
       if (editTendered) payload.amountTendered = parseFloat(editTendered);
@@ -60,6 +67,7 @@ export default function SalesDetailPage() {
   }
 
   async function handleVoid() {
+    if (!order) return;
     if (!confirm(`Void order ${order.orderNumber}? This will restore inventory.`)) return;
     try {
       const res = await fetch(`/api/sales/${id}`, { method: "DELETE" });
@@ -80,7 +88,7 @@ export default function SalesDetailPage() {
   const total = Number(order.total);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <Link href="/sales" className="text-sm text-jc-rose-gold hover:underline">&larr; Back to Sales</Link>
         <div className="flex gap-2">

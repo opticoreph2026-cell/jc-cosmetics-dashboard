@@ -20,6 +20,7 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ description: "", category: "OTHER", amount: 0, date: new Date().toISOString().slice(0, 10), notes: "" });
+  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [month, setMonth] = useState(String(new Date().getMonth() + 1).padStart(2, "0"));
   const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -37,12 +38,12 @@ export default function ExpensesPage() {
 
   useEffect(() => { load(); }, [month, year]);
 
-  function openNew() { setEditId(null); setForm({ description: "", category: "OTHER", amount: 0, date: new Date().toISOString().slice(0, 10), notes: "" }); setShowForm(true); }
+  function openNew() { setEditId(null); setForm({ description: "", category: "OTHER", amount: 0, date: new Date().toISOString().slice(0, 10), notes: "" }); setDirty(false); setShowForm(true); }
 
   function openEdit(e: Expense) {
     setEditId(e.id);
     setForm({ description: e.description, category: e.category, amount: e.amount, date: e.date.slice(0, 10), notes: e.notes || "" });
-    setShowForm(true);
+    setDirty(false); setShowForm(true);
   }
 
   async function handleSave() {
@@ -145,37 +146,37 @@ export default function ExpensesPage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => !saving && setShowForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => { if (!saving) { if (dirty && !confirm("Discard changes?")) return; setShowForm(false); } }}>
           <div className="mx-4 w-full max-w-md rounded-sm bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-medium text-jc-anchor">{editId ? "Edit Expense" : "Add Expense"}</h3>
             <div className="mt-4 space-y-3">
               <div>
                 <label className="block text-xs text-jc-anchor/60 mb-1">Description</label>
-                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                <input value={form.description} onChange={(e) => { setForm({ ...form, description: e.target.value }); setDirty(true); }}
                   className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-jc-anchor/60 mb-1">Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  <select value={form.category} onChange={(e) => { setForm({ ...form, category: e.target.value }); setDirty(true); }}
                     className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor">
                     {Object.entries(categoryLabels).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs text-jc-anchor/60 mb-1">Amount (₱)</label>
-                  <input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
+                  <input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => { setForm({ ...form, amount: parseFloat(e.target.value) || 0 }); setDirty(true); }}
                     className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-jc-anchor/60 mb-1">Date</label>
-                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+                <input type="date" value={form.date} onChange={(e) => { setForm({ ...form, date: e.target.value }); setDirty(true); }}
                   className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor" />
               </div>
               <div>
                 <label className="block text-xs text-jc-anchor/60 mb-1">Notes (optional)</label>
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2}
+                <textarea value={form.notes} onChange={(e) => { setForm({ ...form, notes: e.target.value }); setDirty(true); }} rows={2}
                   className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor" />
               </div>
             </div>

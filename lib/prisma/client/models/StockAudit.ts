@@ -46,6 +46,8 @@ export type StockAuditMinAggregateOutputType = {
   variance: number | null
   notes: string | null
   conductedAt: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type StockAuditMaxAggregateOutputType = {
@@ -56,6 +58,8 @@ export type StockAuditMaxAggregateOutputType = {
   variance: number | null
   notes: string | null
   conductedAt: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type StockAuditCountAggregateOutputType = {
@@ -66,6 +70,8 @@ export type StockAuditCountAggregateOutputType = {
   variance: number
   notes: number
   conductedAt: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -90,6 +96,8 @@ export type StockAuditMinAggregateInputType = {
   variance?: true
   notes?: true
   conductedAt?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type StockAuditMaxAggregateInputType = {
@@ -100,6 +108,8 @@ export type StockAuditMaxAggregateInputType = {
   variance?: true
   notes?: true
   conductedAt?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type StockAuditCountAggregateInputType = {
@@ -110,6 +120,8 @@ export type StockAuditCountAggregateInputType = {
   variance?: true
   notes?: true
   conductedAt?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -207,6 +219,8 @@ export type StockAuditGroupByOutputType = {
   variance: number
   notes: string | null
   conductedAt: Date
+  createdAt: Date
+  updatedAt: Date
   _count: StockAuditCountAggregateOutputType | null
   _avg: StockAuditAvgAggregateOutputType | null
   _sum: StockAuditSumAggregateOutputType | null
@@ -240,6 +254,8 @@ export type StockAuditWhereInput = {
   variance?: Prisma.IntFilter<"StockAudit"> | number
   notes?: Prisma.StringNullableFilter<"StockAudit"> | string | null
   conductedAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
   variant?: Prisma.XOR<Prisma.ProductVariantScalarRelationFilter, Prisma.ProductVariantWhereInput>
 }
 
@@ -251,6 +267,8 @@ export type StockAuditOrderByWithRelationInput = {
   variance?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   conductedAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   variant?: Prisma.ProductVariantOrderByWithRelationInput
 }
 
@@ -265,6 +283,8 @@ export type StockAuditWhereUniqueInput = Prisma.AtLeast<{
   variance?: Prisma.IntFilter<"StockAudit"> | number
   notes?: Prisma.StringNullableFilter<"StockAudit"> | string | null
   conductedAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
   variant?: Prisma.XOR<Prisma.ProductVariantScalarRelationFilter, Prisma.ProductVariantWhereInput>
 }, "id">
 
@@ -276,6 +296,8 @@ export type StockAuditOrderByWithAggregationInput = {
   variance?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   conductedAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.StockAuditCountOrderByAggregateInput
   _avg?: Prisma.StockAuditAvgOrderByAggregateInput
   _max?: Prisma.StockAuditMaxOrderByAggregateInput
@@ -294,6 +316,8 @@ export type StockAuditScalarWhereWithAggregatesInput = {
   variance?: Prisma.IntWithAggregatesFilter<"StockAudit"> | number
   notes?: Prisma.StringNullableWithAggregatesFilter<"StockAudit"> | string | null
   conductedAt?: Prisma.DateTimeWithAggregatesFilter<"StockAudit"> | Date | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"StockAudit"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"StockAudit"> | Date | string
 }
 
 export type StockAuditCreateInput = {
@@ -303,6 +327,8 @@ export type StockAuditCreateInput = {
   variance: number
   notes?: string | null
   conductedAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
   variant: Prisma.ProductVariantCreateNestedOneWithoutStockAuditsInput
 }
 
@@ -314,6 +340,8 @@ export type StockAuditUncheckedCreateInput = {
   variance: number
   notes?: string | null
   conductedAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StockAuditUpdateInput = {
@@ -323,6 +351,8 @@ export type StockAuditUpdateInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   variant?: Prisma.ProductVariantUpdateOneRequiredWithoutStockAuditsNestedInput
 }
 
@@ -334,6 +364,8 @@ export type StockAuditUncheckedUpdateInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StockAuditCreateManyInput = {
@@ -344,6 +376,8 @@ export type StockAuditCreateManyInput = {
   variance: number
   notes?: string | null
   conductedAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StockAuditUpdateManyMutationInput = {
@@ -353,6 +387,8 @@ export type StockAuditUpdateManyMutationInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StockAuditUncheckedUpdateManyInput = {
@@ -363,6 +399,8 @@ export type StockAuditUncheckedUpdateManyInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StockAuditListRelationFilter = {
@@ -383,6 +421,8 @@ export type StockAuditCountOrderByAggregateInput = {
   variance?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   conductedAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type StockAuditAvgOrderByAggregateInput = {
@@ -399,6 +439,8 @@ export type StockAuditMaxOrderByAggregateInput = {
   variance?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   conductedAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type StockAuditMinOrderByAggregateInput = {
@@ -409,6 +451,8 @@ export type StockAuditMinOrderByAggregateInput = {
   variance?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   conductedAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type StockAuditSumOrderByAggregateInput = {
@@ -466,6 +510,8 @@ export type StockAuditCreateWithoutVariantInput = {
   variance: number
   notes?: string | null
   conductedAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StockAuditUncheckedCreateWithoutVariantInput = {
@@ -475,6 +521,8 @@ export type StockAuditUncheckedCreateWithoutVariantInput = {
   variance: number
   notes?: string | null
   conductedAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StockAuditCreateOrConnectWithoutVariantInput = {
@@ -514,6 +562,8 @@ export type StockAuditScalarWhereInput = {
   variance?: Prisma.IntFilter<"StockAudit"> | number
   notes?: Prisma.StringNullableFilter<"StockAudit"> | string | null
   conductedAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"StockAudit"> | Date | string
 }
 
 export type StockAuditCreateManyVariantInput = {
@@ -523,6 +573,8 @@ export type StockAuditCreateManyVariantInput = {
   variance: number
   notes?: string | null
   conductedAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StockAuditUpdateWithoutVariantInput = {
@@ -532,6 +584,8 @@ export type StockAuditUpdateWithoutVariantInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StockAuditUncheckedUpdateWithoutVariantInput = {
@@ -541,6 +595,8 @@ export type StockAuditUncheckedUpdateWithoutVariantInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StockAuditUncheckedUpdateManyWithoutVariantInput = {
@@ -550,6 +606,8 @@ export type StockAuditUncheckedUpdateManyWithoutVariantInput = {
   variance?: Prisma.IntFieldUpdateOperationsInput | number
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conductedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -562,6 +620,8 @@ export type StockAuditSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   variance?: boolean
   notes?: boolean
   conductedAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   variant?: boolean | Prisma.ProductVariantDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["stockAudit"]>
 
@@ -573,6 +633,8 @@ export type StockAuditSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   variance?: boolean
   notes?: boolean
   conductedAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   variant?: boolean | Prisma.ProductVariantDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["stockAudit"]>
 
@@ -584,6 +646,8 @@ export type StockAuditSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   variance?: boolean
   notes?: boolean
   conductedAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   variant?: boolean | Prisma.ProductVariantDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["stockAudit"]>
 
@@ -595,9 +659,11 @@ export type StockAuditSelectScalar = {
   variance?: boolean
   notes?: boolean
   conductedAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type StockAuditOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "variantId" | "expectedQty" | "actualQty" | "variance" | "notes" | "conductedAt", ExtArgs["result"]["stockAudit"]>
+export type StockAuditOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "variantId" | "expectedQty" | "actualQty" | "variance" | "notes" | "conductedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["stockAudit"]>
 export type StockAuditInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   variant?: boolean | Prisma.ProductVariantDefaultArgs<ExtArgs>
 }
@@ -621,6 +687,8 @@ export type $StockAuditPayload<ExtArgs extends runtime.Types.Extensions.Internal
     variance: number
     notes: string | null
     conductedAt: Date
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["stockAudit"]>
   composites: {}
 }
@@ -1052,6 +1120,8 @@ export interface StockAuditFieldRefs {
   readonly variance: Prisma.FieldRef<"StockAudit", 'Int'>
   readonly notes: Prisma.FieldRef<"StockAudit", 'String'>
   readonly conductedAt: Prisma.FieldRef<"StockAudit", 'DateTime'>
+  readonly createdAt: Prisma.FieldRef<"StockAudit", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"StockAudit", 'DateTime'>
 }
     
 

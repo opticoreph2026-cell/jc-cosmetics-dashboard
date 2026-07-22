@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, handleApiError } from "@/lib/auth-helpers";
+import { requireAuth, handleApiError, ApiError } from "@/lib/auth-helpers";
 import { changePasswordSchema, createAdminUserSchema } from "@/lib/validations/schemas";
 import { hash, compare } from "bcryptjs";
 
@@ -35,10 +35,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "create-user") {
+      if ((session.user as any)?.role !== "SUPER_ADMIN") throw new ApiError("Only super admins can create users", 403);
       const data = createAdminUserSchema.parse(body);
       const hashed = await hash(data.password, 12);
       const user = await prisma.adminUser.create({
-        data: { email: data.email, name: data.name, password: hashed },
+        data: { email: data.email, name: data.name, password: hashed, role: "STAFF" },
         select: { id: true, email: true, name: true, role: true, createdAt: true },
       });
       return Response.json(user, { status: 201 });
@@ -52,16 +53,19 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) throw new Error("id is required");
+
+    if ((session.user as any)?.id === id) throw new ApiError("Cannot delete your own account", 400);
+    if ((session.user as any)?.role !== "SUPER_ADMIN") throw new ApiError("Only super admins can delete users", 403);
 
     const target = await prisma.adminUser.findUnique({ where: { id } });
     if (!target) throw new Error("User not found");
 
     const adminCount = await prisma.adminUser.count();
-    if (adminCount <= 1) throw new Error("Cannot delete the last admin");
+    if (adminCount <= 1) throw new ApiError("Cannot delete the last admin", 400);
 
     await prisma.adminUser.delete({ where: { id } });
     return Response.json({ success: true });

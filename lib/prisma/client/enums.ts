@@ -43,7 +43,10 @@ export type ProcurementStatus = (typeof ProcurementStatus)[keyof typeof Procurem
 
 
 export const AdminRole = {
-  ADMIN: 'ADMIN'
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  ADMIN: 'ADMIN',
+  MANAGER: 'MANAGER',
+  STAFF: 'STAFF'
 } as const
 
 export type AdminRole = (typeof AdminRole)[keyof typeof AdminRole]

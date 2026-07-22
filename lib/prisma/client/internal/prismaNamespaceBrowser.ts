@@ -67,6 +67,7 @@ export const ModelName = {
   Expense: 'Expense',
   SalesTarget: 'SalesTarget',
   StockAudit: 'StockAudit',
+  AuditLog: 'AuditLog',
   AccountReceivable: 'AccountReceivable',
   AccountPayable: 'AccountPayable'
 } as const
@@ -315,10 +316,26 @@ export const StockAuditScalarFieldEnum = {
   actualQty: 'actualQty',
   variance: 'variance',
   notes: 'notes',
-  conductedAt: 'conductedAt'
+  conductedAt: 'conductedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type StockAuditScalarFieldEnum = (typeof StockAuditScalarFieldEnum)[keyof typeof StockAuditScalarFieldEnum]
+
+
+export const AuditLogScalarFieldEnum = {
+  id: 'id',
+  adminId: 'adminId',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  changes: 'changes',
+  description: 'description',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
 export const AccountReceivableScalarFieldEnum = {

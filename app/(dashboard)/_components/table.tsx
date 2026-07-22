@@ -1,9 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
-
-type TableVariant = "head" | "body";
-const TableCtx = createContext<TableVariant>("body");
+import type { ReactNode } from "react";
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -15,27 +12,19 @@ export function Table({ children, className }: { children: ReactNode; className?
 
 export function THead({ children }: { children: ReactNode }) {
   return (
-    <TableCtx.Provider value="head">
-      <thead className="sticky top-0 z-10 border-b border-jc-blush bg-jc-cream/30">{children}</thead>
-    </TableCtx.Provider>
+    <thead className="sticky top-0 z-10 border-b border-jc-blush bg-jc-cream/30">{children}</thead>
   );
 }
 
 export function TBody({ children }: { children: ReactNode }) {
   return (
-    <TableCtx.Provider value="body">
-      <tbody className="divide-y divide-jc-blush/50">{children}</tbody>
-    </TableCtx.Provider>
+    <tbody className="divide-y divide-jc-blush/50 [&>tr:nth-child(even)]:bg-jc-cream/10">{children}</tbody>
   );
 }
 
 export function TR({ children, className, onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
-  const variant = useContext(TableCtx);
-  const base = variant === "head"
-    ? ""
-    : "hover:bg-jc-cream/20 even:bg-jc-cream/10 transition-colors";
   const clickable = onClick ? "cursor-pointer" : "";
-  return <tr className={`${base} ${clickable} ${className ?? ""}`.trim()} onClick={onClick}>{children}</tr>;
+  return <tr className={`hover:bg-jc-cream/20 transition-colors ${clickable} ${className ?? ""}`.trim()} onClick={onClick}>{children}</tr>;
 }
 
 type ColAlign = "left" | "right" | "center";

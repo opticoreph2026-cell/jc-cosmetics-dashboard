@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recha
 export function DailyChart({ data }: { data: { date: string; revenue: string }[] }) {
   return (
     <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={data}>
+      <BarChart data={data} accessibilityLayer>
         <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#5C4033" }} />
         <YAxis tick={{ fontSize: 10, fill: "#5C4033" }} />
         <Tooltip />

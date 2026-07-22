@@ -16,7 +16,6 @@ type Product = { id: string; name: string; variants: { id: string; name: string;
 export function ManageLinkedProducts({ supplierId, initial }: { supplierId: string; initial: LinkedProduct[] }) {
   const router = useRouter();
   const [linked, setLinked] = useState(initial);
-  useEffect(() => { setLinked(initial); }, [initial]);
   const [showLink, setShowLink] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");

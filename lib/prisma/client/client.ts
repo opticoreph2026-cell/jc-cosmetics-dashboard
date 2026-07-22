@@ -122,6 +122,11 @@ export type SalesTarget = Prisma.SalesTargetModel
  */
 export type StockAudit = Prisma.StockAuditModel
 /**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel
+/**
  * Model AccountReceivable
  * 
  */

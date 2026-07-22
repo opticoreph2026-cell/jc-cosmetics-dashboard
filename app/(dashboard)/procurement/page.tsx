@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { ReceivePOButton } from "./receive-button";
 import { Table, THead, TBody, TR, TH, TD, Empty } from "../_components/table";
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending", ORDERED: "Ordered", PARTIALLY_RECEIVED: "Partial",
+  RECEIVED: "Received", CANCELLED: "Cancelled",
+};
+
 export default async function ProcurementPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -47,7 +52,7 @@ export default async function ProcurementPage() {
                   po.status === "PENDING" ? "bg-amber-100 text-amber-700" :
                   po.status === "CANCELLED" ? "bg-red-100 text-red-500" :
                   "bg-jc-cream text-jc-anchor"
-                }`}>{({ PENDING: "Pending", ORDERED: "Ordered", PARTIALLY_RECEIVED: "Partial", RECEIVED: "Received", CANCELLED: "Cancelled" } as Record<string, string>)[po.status] || po.status}</span>
+                }`}>{STATUS_LABELS[po.status] || po.status}</span>
               </TD>
               <TD align="right">₱{Number(po.totalCost).toFixed(2)}</TD>
               <TD>{(po.status === "PENDING" || po.status === "PARTIALLY_RECEIVED") && <ReceivePOButton poId={po.id} poNumber={po.poNumber} />}</TD>

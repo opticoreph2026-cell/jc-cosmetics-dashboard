@@ -636,7 +636,8 @@ export async function generatePromo(variantId?: string) {
       continue;
     }
 
-    const tmpl = templateSet[Math.floor(Math.random() * templateSet.length)];
+    const idx = v.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % templateSet.length;
+    const tmpl = templateSet[idx];
     const salePrice = price * (1 - discount / 100);
 
     const filled = {

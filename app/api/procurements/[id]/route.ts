@@ -27,9 +27,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const itemQtyMap = items ? Object.fromEntries(items.map((i) => [i.id, i.qty])) : {};
 
         for (const item of po.items) {
+          const received = item.qtyReceived ?? 0;
           const qtyToReceive = itemQtyMap[item.id] !== undefined
-            ? Math.min(itemQtyMap[item.id], item.qtyOrdered - item.qtyReceived)
-            : item.qtyOrdered - item.qtyReceived;
+            ? Math.min(itemQtyMap[item.id], item.qtyOrdered - received)
+            : item.qtyOrdered - received;
           if (qtyToReceive <= 0) continue;
 
           const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });

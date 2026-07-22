@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 type AdminUser = { id: string; email: string; name: string; role: string; createdAt: string };
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const isSuperAdmin = (session?.user as any)?.role === "SUPER_ADMIN";
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -80,13 +83,13 @@ export default function SettingsPage() {
       <div className="rounded-sm border border-jc-blush bg-white p-6">
         <h2 className="text-sm font-medium text-jc-anchor mb-4">Change Password</h2>
         <form onSubmit={handleChangePassword} className="space-y-3">
-          <input type="password" placeholder="Current password" required value={currentPassword}
+          <input type="password" placeholder="Current password" required value={currentPassword} autoComplete="current-password"
             onChange={(e) => setCurrentPassword(e.target.value)}
             className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor focus:border-jc-rose-gold focus:outline-none" />
-          <input type="password" placeholder="New password" required value={newPassword} minLength={6}
+          <input type="password" placeholder="New password" required value={newPassword} minLength={6} autoComplete="new-password"
             onChange={(e) => setNewPassword(e.target.value)}
             className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor focus:border-jc-rose-gold focus:outline-none" />
-          <input type="password" placeholder="Confirm new password" required value={confirmPassword}
+          <input type="password" placeholder="Confirm new password" required value={confirmPassword} autoComplete="new-password"
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="block w-full rounded-sm border border-jc-blush px-3 py-2 text-sm text-jc-anchor focus:border-jc-rose-gold focus:outline-none" />
           <button type="submit" disabled={loading}
@@ -96,7 +99,7 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      <div className="rounded-sm border border-jc-blush bg-white p-6">
+      {isSuperAdmin && <div className="rounded-sm border border-jc-blush bg-white p-6">
         <h2 className="text-sm font-medium text-jc-anchor mb-4">Create Admin User</h2>
         <form onSubmit={handleCreateUser} className="space-y-3">
           <input type="email" placeholder="Email" required value={newEmail}
@@ -113,7 +116,7 @@ export default function SettingsPage() {
             {loading ? "Creating..." : "Create User"}
           </button>
         </form>
-      </div>
+      </div>}
 
       <div className="rounded-sm border border-jc-blush bg-white p-6">
         <h2 className="text-sm font-medium text-jc-anchor mb-4">Admin Users ({users.length})</h2>
