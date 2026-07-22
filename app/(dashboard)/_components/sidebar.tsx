@@ -25,36 +25,102 @@ import {
   Wallet,
   Settings,
   Brain,
+  ChevronDown,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/inventory/reorder", label: "Reorder", icon: RefreshCw },
-  { href: "/inventory/valuation", label: "Valuation", icon: DollarSign },
-  { href: "/stock-audit", label: "Stock Audit", icon: ClipboardCheck },
-  { href: "/quick-log", label: "Quick Log", icon: FileText },
-  { href: "/sales", label: "Sales", icon: ShoppingCart },
-  { href: "/sales/targets", label: "Targets", icon: Target },
-  { href: "/sales/reports", label: "Reports", icon: BarChart3 },
-  { href: "/analysis/intelligence", label: "Intelligence Hub", icon: Brain },
-  { href: "/analysis/pricing", label: "Pricing Analysis", icon: BarChart3 },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/suppliers", label: "Suppliers", icon: Truck },
-  { href: "/categories", label: "Categories", icon: Tags },
-  { href: "/procurement", label: "Procurement", icon: ClipboardList },
-  { href: "/ledger", label: "Ledger", icon: BookOpen },
-  { href: "/expenses", label: "Expenses", icon: DollarSign },
-  { href: "/ar", label: "A/R", icon: Receipt },
-  { href: "/ap", label: "A/P", icon: Wallet },
-  { href: "/settings", label: "Settings", icon: Settings },
+type NavGroup = {
+  label: string;
+  icon: any;
+  children: { href: string; label: string }[];
+};
+
+const groups: NavGroup[] = [
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    children: [{ href: "/dashboard", label: "Overview" }],
+  },
+  {
+    label: "Inventory",
+    icon: Package,
+    children: [
+      { href: "/inventory", label: "All Products" },
+      { href: "/inventory/reorder", label: "Reorder" },
+      { href: "/inventory/valuation", label: "Valuation" },
+      { href: "/stock-audit", label: "Stock Audit" },
+    ],
+  },
+  {
+    label: "Sales",
+    icon: ShoppingCart,
+    children: [
+      { href: "/quick-log", label: "Quick Log" },
+      { href: "/sales", label: "Orders" },
+      { href: "/sales/targets", label: "Targets" },
+      { href: "/sales/reports", label: "Reports" },
+    ],
+  },
+  {
+    label: "Analysis",
+    icon: Brain,
+    children: [
+      { href: "/analysis/intelligence", label: "Intelligence Hub" },
+      { href: "/analysis/pricing", label: "Pricing Analysis" },
+    ],
+  },
+  {
+    label: "Customers",
+    icon: Users,
+    children: [{ href: "/customers", label: "All Customers" }],
+  },
+  {
+    label: "Suppliers",
+    icon: Truck,
+    children: [{ href: "/suppliers", label: "All Suppliers" }],
+  },
+  {
+    label: "Finance",
+    icon: DollarSign,
+    children: [
+      { href: "/ar", label: "A/R" },
+      { href: "/ap", label: "A/P" },
+      { href: "/expenses", label: "Expenses" },
+      { href: "/ledger", label: "Ledger" },
+    ],
+  },
+  {
+    label: "Procurement",
+    icon: ClipboardList,
+    children: [{ href: "/procurement", label: "POs" }],
+  },
+  {
+    label: "Categories",
+    icon: Tags,
+    children: [{ href: "/categories", label: "Manage Categories" }],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    children: [{ href: "/settings", label: "Admin & Password" }],
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const g of groups) {
+      initial[g.label] = g.children.some((c) => pathname.startsWith(c.href));
+    }
+    return initial;
+  });
+
+  function toggle(label: string) {
+    setExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
+  }
 
   return (
     <>
@@ -98,23 +164,50 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+          {groups.map((group) => {
+            const groupActive = group.children.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"));
+            const isExpanded = expanded[group.label] ?? groupActive;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm transition-colors ${
-                  isActive
-                    ? "bg-jc-cream text-jc-rose-gold font-medium"
-                    : "text-jc-anchor hover:bg-jc-cream/50"
-                }`}
-              >
-                <item.icon size={18} />
-                {item.label}
-              </Link>
+              <div key={group.label}>
+                <button
+                  onClick={() => toggle(group.label)}
+                  className={`flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm transition-colors ${
+                    groupActive
+                      ? "bg-jc-cream text-jc-rose-gold font-medium"
+                      : "text-jc-anchor hover:bg-jc-cream/50"
+                  }`}
+                >
+                  <group.icon size={18} />
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${isExpanded ? "rotate-0" : "-rotate-90"}`}
+                  />
+                </button>
+                {isExpanded && (
+                  <div className="ml-4 space-y-0.5 border-l border-jc-blush/30 pl-2 mt-0.5">
+                    {group.children.map((child) => {
+                      const isChildActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setOpen(false)}
+                          className={`flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm transition-colors ${
+                            isChildActive
+                              ? "text-jc-rose-gold font-medium"
+                              : "text-jc-anchor/70 hover:text-jc-anchor"
+                          }`}
+                        >
+                          <span className="h-1 w-1 rounded-full bg-current opacity-40" />
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
