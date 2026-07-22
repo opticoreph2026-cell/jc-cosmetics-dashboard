@@ -1,4 +1,5 @@
 import { computeAnalysis, type AnalysisData } from "@/lib/analysis";
+import { SalesTrendChart } from "./sales-trend-chart";
 import {
   BarChart3, TrendingUp, TrendingDown, DollarSign, Package,
   AlertTriangle, Lightbulb, ShoppingCart, Target,
@@ -26,9 +27,6 @@ export default async function PricingAnalysisPage() {
   if (!data) return <div className="p-6 text-jc-anchor">No data available.</div>;
 
   const { summary, salesTrend, profitScenarios, productAnalysis, priceChangeImpact, categorySummary, velocitySummary, abcSummary, recommendations } = data;
-
-  const allMonths = [...salesTrend.history, ...salesTrend.prediction];
-  const maxUnits = Math.max(...allMonths.map((m) => m.units), 1);
 
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-6xl">
@@ -68,26 +66,8 @@ export default async function PricingAnalysisPage() {
              salesTrend.trendDirection === "down" ? "Trending Down" : "Stable"}
           </span>
         </div>
-        <div className="flex items-end gap-1 h-40 mb-2">
-          {allMonths.map((m, i) => {
-            const isPrediction = i >= salesTrend.history.length;
-            const pct = Math.max(3, (m.units / maxUnits) * 100);
-            return (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] text-jc-rose-gold">{m.units}</span>
-                <div
-                  className={`w-full rounded-sm ${isPrediction ? "bg-amber-300 opacity-70" : "bg-jc-rose-gold"}`}
-                  style={{ height: `${pct}%` }}
-                  title={`${m.month}: ${m.units} units${isPrediction ? " (predicted)" : ""}`}
-                />
-                <span className={`text-[9px] ${isPrediction ? "text-amber-500" : "text-jc-rose-gold"}`}>
-                  {m.label}{isPrediction ? "?" : ""}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="text-xs text-jc-rose-gold flex gap-4">
+        <SalesTrendChart history={salesTrend.history} prediction={salesTrend.prediction} />
+        <div className="text-xs text-jc-rose-gold flex gap-4 mt-2">
           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-jc-rose-gold" /> Actual</span>
           <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-amber-300 opacity-70" /> AI Prediction</span>
           <span>{salesTrend.growthRate > 0 ? "+" : ""}{salesTrend.growthRate}% growth</span>
